@@ -25,7 +25,7 @@ Use this reference architecture to control every aspect of your cloud resources.
 
 Click the **Launch Stack** button below to deploy the cloud resources on AWS. This will open the AWS console in your web browser.
 
-[![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start an MJS cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://github.com/mathworks-ref-arch/mdcs-on-aws/templates/MJS-Cluster-Template.json)
+[![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start an MJS cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mdcs-on-aws/MJS-Cluster-Template.json)
 
 > Platform: Ubuntu Xenial (16.04)
 
@@ -138,9 +138,6 @@ The MJS cluster and the resources required by it are created using [AWS CloudFor
 * IAM role for deletion of S3 bucket (AWS::IAM::Role): The S3 bucket cannot be automatically deleted by Cloud Formation unless it is empty. This role gives permissions for an AWS lambda function to empty the S3 bucket during shut down of the cluster.
 * Lambda function to empty the S3 bucket (AWS::Lambda::Function): A lambda function that will empty the S3 bucket created above to allow Cloud Formation to successfully delete the S3 bucket when the cluster is shut down.
 * Custom lambda dependency (Custom::LambdaDependency): A custom dependency used to trigger the lambda function when the Cloud Formation stack is deleted.
-
-# Enhancement Request
-Provide suggestions for additional features or capabilities using the following link: [https://www.mathworks.com/cloud/enhancement-request.html](https://www.mathworks.com/cloud/enhancement-request.html)
 
 # Technical Support
 Email: `cloud-support@mathworks.com`

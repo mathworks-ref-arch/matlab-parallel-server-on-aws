@@ -5,7 +5,7 @@
           "InstanceValues": {
               "ClusterNodeAmi": "ami-0b2e4815a2afa9793",
               "MatlabReleaseSnapshot": "snap-073e81a3127b25204",
-              "BootScriptLocation": "https://github.com/mathworks-ref-arch/mdcs-on-aws/scripts/boot-mdcs.sh"
+              "BootScriptLocation": "https://s3.amazonaws.com/mdcs-on-aws"
           },
           "ReleaseValues": {
               "ReleaseDate": "20180509"
