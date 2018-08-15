@@ -13,68 +13,6 @@
       }
   },
   "Resources": {
-    "VPC": {
-      "Type": "AWS::EC2::VPC",
-      "Properties": {
-        "EnableDnsSupport": "true",
-        "EnableDnsHostnames": "true",
-        "CidrBlock": "10.0.0.0/24",
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": {"Ref": "ClusterName"}
-          }
-        ]
-      }
-    },
-    "ExternalGateway": {
-      "Type": "AWS::EC2::InternetGateway",
-      "Properties": {}
-    },
-    "ExternalVPCAttachment": {
-      "Type": "AWS::EC2::VPCGatewayAttachment",
-      "Properties": {
-        "InternetGatewayId": {"Ref": "ExternalGateway"},
-        "VpcId": {"Ref": "VPC"}
-      }
-    },
-    "PublicSubnet": {
-      "Type": "AWS::EC2::Subnet",
-      "Properties": {
-        "AvailabilityZone" : {"Ref": "AvailabilityZone"},
-        "CidrBlock": "10.0.0.0/24",
-        "MapPublicIpOnLaunch": true,
-        "VpcId": {"Ref": "VPC"},
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": {"Ref": "ClusterName"}
-          }
-        ]
-      }
-    },
-    "PublicRouteTable": {
-      "Type": "AWS::EC2::RouteTable",
-      "Properties": {
-        "VpcId": {"Ref": "VPC"}
-      }
-    },
-    "PublicRoute": {
-      "Type": "AWS::EC2::Route",
-      "DependsOn": "ExternalVPCAttachment",
-      "Properties": {
-        "RouteTableId": {"Ref": "PublicRouteTable"},
-        "DestinationCidrBlock": "0.0.0.0/0",
-        "GatewayId": {"Ref": "ExternalGateway"}
-      }
-    },
-    "TableAssociation": {
-      "Type": "AWS::EC2::SubnetRouteTableAssociation",
-      "Properties": {
-        "RouteTableId": {"Ref": "PublicRouteTable"},
-        "SubnetId": {"Ref": "PublicSubnet"}
-      }
-    },
     "ClusterSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
@@ -156,11 +94,14 @@
     "Headnode": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
-        "AvailabilityZone" : {"Ref": "AvailabilityZone"},
         "InstanceType": {"Ref": "HeadnodeInstanceType"},
         "IamInstanceProfile": {"Ref": "ClusterInstanceProfile"},
-        "SubnetId": {"Ref": "PublicSubnet"},
-        "SecurityGroupIds": [{"Ref": "ClusterSecurityGroup"}],
+        "NetworkInterfaces": [ {
+          "AssociatePublicIpAddress": "true",
+          "DeviceIndex": "0",
+          "GroupSet": [{"Ref": "ClusterSecurityGroup"}],
+          "SubnetId": {"Ref": "PublicSubnet"}
+        } ],
         "KeyName": {"Ref": "SSHKeyName"},
         "ImageId": {"Fn::FindInMap": ["Constants", "InstanceValues", "ClusterNodeAmi"]},
         "BlockDeviceMappings": [
@@ -239,6 +180,7 @@
       "DependsOn" : "Headnode",
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
+        "AssociatePublicIpAddress": "true",
         "SecurityGroups": [{"Ref": "ClusterSecurityGroup"}],
         "BlockDeviceMappings": [
           {
@@ -499,6 +441,14 @@
     }
   },
   "Parameters": {
+    "VPC": {
+      "Description": "Id of an existing VPC in which to deploy this stack",
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "PublicSubnet": {
+      "Description": "Id of an existing subnet for the head node and workers",
+      "Type": "AWS::EC2::Subnet::Id"
+    },
     "ClientIPAddress": {
       "Description": "The IP address range that can be used access the cluster from MATLAB. This must be a valid IP CIDR range of the form x.x.x.x/x. Use the value <your_public_ip_address>/32 to restrict access to only your computer.",
       "Type": "String",
@@ -549,10 +499,6 @@
       "Type": "Number",
       "Default": "2",
       "MinValue": "0"
-    },
-    "AvailabilityZone": {
-      "Description": "The availability zone to use",
-      "Type": "AWS::EC2::AvailabilityZone::Name"
     }
   },
   "Conditions": {
@@ -595,11 +541,11 @@
         },
         {
           "Label": {"default": "Amazon EC2 Configuration"},
-          "Parameters": ["HeadnodeInstanceType", "WorkerInstanceType", "AvailabilityZone", "SSHKeyName"]
+          "Parameters": ["HeadnodeInstanceType", "WorkerInstanceType", "SSHKeyName"]
         },
         {
           "Label": {"default": "Network Configuration"},
-          "Parameters": ["ClientIPAddress" ]
+          "Parameters": ["ClientIPAddress", "VPC", "PublicSubnet"]
         }
       ],
       "ParameterLabels": {
@@ -609,9 +555,10 @@
         "DatabaseVolumeSize" : { "default" : "Size (GB) of the database EBS volume" },
         "HeadnodeInstanceType" : { "default" : "Instance type for the head node" },
         "WorkerInstanceType" : { "default" : "Instance type for the worker nodes" },
-        "AvailabilityZone" : { "default" : "Availability zone" },
         "SSHKeyName" : { "default" : "Name of SSH key" },
-        "ClientIPAddress" : { "default" : "CIDR IP address range of client" }
+        "ClientIPAddress" : { "default" : "CIDR IP address range of client" },
+        "VPC" : { "default" : "VPC to deploy this stack to" },
+        "PublicSubnet" : { "default" : "Subnet for the head node and worker nodes" }
       }
     }
   }

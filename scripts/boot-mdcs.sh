@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2017 The MathWorks, Inc.
+# Copyright 2017-2018 The MathWorks, Inc.
 
 function pollS3 {
     START=$(date -u +%s)

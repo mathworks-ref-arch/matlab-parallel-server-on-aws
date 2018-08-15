@@ -83,7 +83,9 @@ Your cluster is now ready to use. It will remain running after you close MATLAB.
 **NOTE**: Use the profile and client IP address range to control access to your cloud resources. Anyone with this file can connect to your resources from a machine within the specified IP address range and run jobs on it.
 
 # Additional Information
+
 ## Delete Your Cloud Resources
+
 You can remove the CloudFormation stack and all associated resources when you are done with them. Note that there is no undo. After you delete the cloud resources you cannot use the downloaded profile again.
 
 1. Select the Stack in the CloudFormation Stacks screen.  Select **Actions/Delete**.
@@ -93,9 +95,29 @@ You can remove the CloudFormation stack and all associated resources when you ar
 2. Confirm the delete when prompted.  CloudFormation will now delete resources which can take a few minutes.
 
 ## Troubleshooting
+
 If your stack fails to create, check the events section of the CloudFormation console. It will indicate which resources caused the failure and why.
 
 If the stack created successfully but you are unable to validate the cluster you may need to view the logs on the instances to diagnose the error. The logs are output to /var/log on the instance nodes, the files of interest are cloud-init.log, cloud-init-output.log, mathworks.log and all the logs under /var/log/mdce.
+
+## Use Existing VPC
+
+You can launch the reference architecture within an existing VPC and subnet using the MJS-Cluster-Template-existing-vpc.json template.
+
+[![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start an MJS cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mdcs-on-aws/MJS-Cluster-Template-existing-vpc.json)
+
+> Cluster Platform: Ubuntu Xenial (16.04)
+
+> MATLAB Release: R2018a
+
+This template requires the following two additional parameters:
+
+| Parameter label | Description |
+| --- | --- |
+| VPC (required) | The id of an existing Virtual Private Cloud to deploy this stack in |
+| Subnet (required) | The id of an existing subnet for the head node and workers nodes |
+
+When using this template the 'Availability Zone' parameter is not required and has been removed. This is now derived from the subnet, so choose a subnet in an Availability Zone that supports the instance types you have specified.
 
 ## Learn About MJS Cluster Architecture
 
