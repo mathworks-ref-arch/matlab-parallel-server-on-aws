@@ -5,7 +5,7 @@
 Before starting, you will need the following:
 
 - MATLAB Distributed Computing Server™ license. For more information, see [Configuring License in the Cloud](https://www.mathworks.com/support/cloud/configure-matlab-distributed-computing-server-licensing-on-the-cloud.html).
-- MATLAB® R2018a and Parallel Computing Toolbox™ on your desktop.
+- MATLAB® R2018b and Parallel Computing Toolbox™ on your desktop.
 
 - An Amazon Web Services™ (AWS) account with required permissions. To see what is required look at the [example policy](/doc/mdcs-on-aws-iam-policy.json). For more information about the services used see [Learn About MJS Cluster Architecture](#learn-about-mjs-cluster-architecture).
 
@@ -25,11 +25,13 @@ Use this reference architecture to control every aspect of your cloud resources.
 
 Click the **Launch Stack** button below to deploy the cloud resources on AWS. This will open the AWS console in your web browser.
 
-[![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start an MJS cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mdcs-on-aws/MJS-Cluster-Template.json)
+[![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start an MJS cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mdcs-on-aws/MJS-Cluster-Template-R2018b.json)
 
 > Platform: Ubuntu Xenial (16.04)
 
-> MATLAB Release: R2018a
+> MATLAB Release: R2018b
+
+For other releases, see [How do I launch a template that uses a previous MATLAB release?](#how-do-i-launch-a-template-that-uses-a-previous-matlab-release)
 
 ## Step 2. Configure the Cloud Resources
 After you click the Launch Stack button above, the “Create stack” page will open in your browser where you can configure the parameters. It is easier to complete the steps if you position these instructions and the AWS console window side-by-side.
@@ -104,20 +106,26 @@ If the stack created successfully but you are unable to validate the cluster you
 
 You can launch the reference architecture within an existing VPC and subnet using the MJS-Cluster-Template-existing-vpc.json template.
 
-[![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start an MJS cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mdcs-on-aws/MJS-Cluster-Template-existing-vpc.json)
+[![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start an MJS cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mdcs-on-aws/MJS-Cluster-Template-existing-vpc-R2018b.json)
 
 > Cluster Platform: Ubuntu Xenial (16.04)
 
-> MATLAB Release: R2018a
+> MATLAB Release: R2018b
 
 This template requires the following two additional parameters:
 
 | Parameter label | Description |
 | --- | --- |
-| VPC (required) | The id of an existing Virtual Private Cloud to deploy this stack in |
-| Subnet (required) | The id of an existing subnet for the head node and workers nodes |
+| VPC (required) | The ID of an existing Virtual Private Cloud to deploy this stack in |
+| Subnet (required) | The ID of an existing subnet for the head node and workers nodes |
 
 When using this template the 'Availability Zone' parameter is not required and has been removed. This is now derived from the subnet, so choose a subnet in an Availability Zone that supports the instance types you have specified.
+
+## How do I launch a template that uses a previous MATLAB release?
+
+| Release | Ubuntu Xenial (16.04) | Ubuntu Xenial (16.04) with existing VPC |
+| ------- | --------------------- | --------------------------------------- |
+| MATLAB R2018a | [![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start an MJS cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mdcs-on-aws/MJS-Cluster-Template-R2018a.json) | [![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start an MJS cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mdcs-on-aws/MJS-Cluster-Template-existing-vpc-R2018a.json)
 
 ## Learn About MJS Cluster Architecture
 
