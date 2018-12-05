@@ -187,12 +187,12 @@ else
 fi
 
 # For backwards-compatibility with old templates, if the LICENSE_TYPE
-# variable is not set, default to Online Licensing.
+# variable is not set, default to online licensing.
 if [ "${LICENSE_TYPE}" == "Online" ] || [ -z "${LICENSE_TYPE}" ]; then
-    echo "Using Online Licensing"
+    echo "Using online licensing"
     initOnlineLicensing
 elif [ "${LICENSE_TYPE}" == "Network" ]; then
-    echo "Using Network License Manager"
+    echo "Using network license manager"
     initNetworkLicensing
 fi
 

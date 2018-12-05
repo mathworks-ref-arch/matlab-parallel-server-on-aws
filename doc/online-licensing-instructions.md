@@ -4,13 +4,13 @@
 
 Before starting, you will need the following:
 
-* MATLAB Distributed Computing Server license configured to use Online Licensing for MATLAB. For more information, see [Configure MATLAB Distributed Computing Server Licensing on the Cloud](https://www.mathworks.com/support/cloud/configure-matlab-distributed-computing-server-licensing-on-the-cloud.html).
+* MATLAB Distributed Computing Server license configured to use online licensing for MATLAB. For more information, see [Configure MATLAB Distributed Computing Server Licensing on the Cloud](https://www.mathworks.com/support/cloud/configure-matlab-distributed-computing-server-licensing-on-the-cloud.html).
 
 ## Step 1. Launch the Template
 
 Click the **Launch Stack** button below to deploy the cloud resources on AWS. This will open the AWS console in your web browser.
 
-[![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start an cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mjs-on-ec2/MJS-Cluster-Template-R2018b.json)
+[![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start an cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mdcs-on-aws/MJS-Cluster-Template-R2018b.json)
 
 > Platform: Ubuntu Xenial (16.04)
 
@@ -92,7 +92,7 @@ If the stack created successfully but you are unable to validate the cluster che
 
 You can launch the reference architecture within an existing VPC and subnet using the MJS-Cluster-Template-existing-vpc-R2018b.json template.
 
-[![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start an cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mjs-on-ec2/MJS-Cluster-Template-existing-vpc-R2018b.json)
+[![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start an cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mdcs-on-aws/MJS-Cluster-Template-existing-vpc-R2018b.json)
 
 > Cluster Platform: Ubuntu Xenial (16.04)
 
@@ -111,5 +111,5 @@ When using this template, the 'Availability Zone' parameter is not required and 
 
 | Release | Ubuntu Xenial (16.04) | Ubuntu Xenial (16.04) with existing VPC |
 | ------- | --------------------- | --------------------------------------- |
-| MATLAB R2018a | [![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start a cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mjs-on-ec2/MJS-Cluster-Template-R2018a.json) | [![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start a cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mjs-on-ec2/MJS-Cluster-Template-existing-vpc-R2018a.json)
+| MATLAB R2018a | [![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start a cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mdcs-on-aws/MJS-Cluster-Template-R2018a.json) | [![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start a cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mdcs-on-aws/MJS-Cluster-Template-existing-vpc-R2018a.json)
 

@@ -467,11 +467,11 @@
       "ConstraintDescription": "Must be a valid IP CIDR range of the form x.x.x.x/x."
     },
     "LicenseManagerHostname": {
-      "Description": "The hostname of the Network License Manager for MATLAB to use with this cluster.",
+      "Description": "The hostname of the network license manager for MATLAB to use with this cluster.",
       "Type": "String"
     },
     "LicenseManagerPort": {
-      "Description": "The port of the Network License Manager for MATLAB to use with this cluster.",
+      "Description": "The port of the network license manager for MATLAB to use with this cluster.",
       "Type": "Number",
       "Default": "27000",
       "MinValue": "0",
@@ -568,7 +568,7 @@
           "Parameters": ["ClientIPAddress", "VPC", "PublicSubnet"]
         },
         {
-          "Label": {"default": "Network License Manager details"},
+          "Label": {"default": "Network license manager details"},
           "Parameters": ["LicenseManagerHostname", "LicenseManagerPort"]
         }
       ],
@@ -581,8 +581,8 @@
         "WorkerInstanceType" : { "default" : "Instance type for the worker nodes" },
         "SSHKeyName" : { "default" : "Name of SSH key" },
         "ClientIPAddress" : { "default" : "CIDR IP address range of client" },
-        "LicenseManagerHostname" : { "default" : "Network License Manager hostname" },
-        "LicenseManagerPort" : { "default" : "Network License Manager port" },
+        "LicenseManagerHostname" : { "default" : "Network license manager hostname" },
+        "LicenseManagerPort" : { "default" : "Network license manager port" },
         "VPC" : { "default" : "VPC to deploy this stack to" },
         "PublicSubnet" : { "default" : "Subnet for the head node and worker nodes" }
       }

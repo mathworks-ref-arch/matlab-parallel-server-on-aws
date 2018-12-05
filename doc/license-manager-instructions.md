@@ -4,13 +4,13 @@
 
 Before starting, you will need the following:
 
-* A Network License Manager for MATLAB hosting sufficient MATLAB Distributed Computing Server licenses for you cluster. MathWorks provide a reference architecture to deploy a suitable [Network License Manager for MATLAB on AWS](https://github.com/mathworks-ref-arch/license-manager-for-matlab-on-aws).
+* A network license manager for MATLAB hosting sufficient MATLAB Distributed Computing Server licenses for you cluster. MathWorks provide a reference architecture to deploy a suitable [Network License Manager for MATLAB on AWS](https://github.com/mathworks-ref-arch/license-manager-for-matlab-on-aws).
 
 ## Step 1. Launch the Template
 
 Click the **Launch Stack** button below to deploy the cloud resources on AWS. This will open the AWS console in your web browser.
 
-[![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start a cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mjs-on-ec2/MJS-Cluster-Template-with-license-manager-R2018b.json)
+[![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start a cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mdcs-on-aws/MJS-Cluster-Template-with-license-manager-R2018b.json)
 
 > Platform: Ubuntu Xenial (16.04)
 
@@ -36,8 +36,8 @@ After you click the Launch Stack button above, the “Create stack” page will 
     | **CIDR IP address range of client** (required)         | This is the IP address range that will be allowed to connect to this cluster. The format for this field is IP Address/Mask. <p><em>Example</em>: </p>10.0.0.1/32 <ul><li>This is the public IP address which can be found by searching for "what is my ip address" on the web. The mask determines the number of IP addresses to include.</li><li>A mask of 32 is a single IP address.</li><li>Use a [CIDR calculator](https://www.ipaddressguide.com/cidr) if you need a range of more than one IP addresses.</li><li>You may need to contact your IT administrator to determine which address is appropriate.</li></ul></p>
     | **VPC** (required) | The ID of an existing Virtual Private Cloud to deploy this stack in
     | **Subnet** (required) | The ID of an existing subnet for the head node and worker nodes. Choose a subnet in an Availability Zone that supports the instance types you have specified.
-    | **Network License Manager hostname** (required)        | The hostname or IP address of the instance hosting your Network License Manager.
-    | **Network License Manager port** (required)            | The port to use when connecting to your Network License Manager.
+    | **Network license manager hostname** (required)        | The hostname or IP address of the instance hosting your network license manager.
+    | **Network license manager port** (required)            | The port to use when connecting to your network license manager.
 
 2. Tick the box to accept that the template uses IAM roles. These roles allow:
   * the instances to transfer the shared secret information between the nodes, via the S3 bucket, to establish SSL encrypted communications
@@ -94,4 +94,4 @@ If the stack created successfully but you are unable to validate the cluster che
 
 | Release | Ubuntu Xenial (16.04) |
 | ------- | --------------------- |
-| MATLAB R2018a | [![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start a cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mjs-on-ec2/MJS-Cluster-Template-with-license-manager-R2018a.json) |
+| MATLAB R2018a | [![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start a cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mdcs-on-aws/MJS-Cluster-Template-with-license-manager-R2018a.json) |
