@@ -57,7 +57,7 @@ When you click Create, the cluster is created using AWS CloudFormation templates
 3. Click the link next to **BucketURL** under **Outputs**.
 4. Select the profile (**ClusterName.settings**) and click **Download**.
 5. Open MATLAB.
-6. In the Parallel drop-down menu in the MATLAB toolstrip select **Manage Cluster Profiles**.
+6. In the Parallel drop-down menu in the MATLAB toolstrip select **Create and Manage Clusters...**.
 7. Click **Import**.
 8. Select the downloaded profile and click open.
 9. Click **Set as Default**.
