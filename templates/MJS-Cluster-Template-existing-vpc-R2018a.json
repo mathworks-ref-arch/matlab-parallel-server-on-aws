@@ -133,6 +133,7 @@
                 "export PROFILE_NAME=\"", { "Fn::Join" : ["", [ {"Ref": "ClusterName"}, ".settings" ] ] }, "\"\n",
                 "export S3_BUCKET=s3://", {"Ref": "S3Bucket"}, "\n",
                 "export RELEASE_DATE=", {"Fn::FindInMap": ["Constants", "ReleaseValues", "ReleaseDate"]}, "\n",
+                "export LICENSE_TYPE=Online\n",
                 "function curlWithRetry {\n",
                 "    NUM_ATTEMPTS=3\n",
                 "    RETRY_DELAY=1\n",
@@ -208,6 +209,7 @@
                 "export HEADNODE_INSTANCE_ID=", {"Ref": "Headnode"}, "\n",
                 "export S3_BUCKET=s3://", {"Ref": "S3Bucket"}, "\n",
                 "export RELEASE_DATE=", {"Fn::FindInMap": ["Constants", "ReleaseValues", "ReleaseDate"]}, "\n",
+                "export LICENSE_TYPE=Online\n",
                 "function curlWithRetry {\n",
                 "    NUM_ATTEMPTS=3\n",
                 "    RETRY_DELAY=1\n",
@@ -442,11 +444,11 @@
   },
   "Parameters": {
     "VPC": {
-      "Description": "Id of an existing VPC in which to deploy this stack",
+      "Description": "ID of an existing VPC in which to deploy this stack",
       "Type": "AWS::EC2::VPC::Id"
     },
     "PublicSubnet": {
-      "Description": "Id of an existing subnet for the head node and workers",
+      "Description": "ID of an existing subnet for the head node and workers",
       "Type": "AWS::EC2::Subnet::Id"
     },
     "ClientIPAddress": {

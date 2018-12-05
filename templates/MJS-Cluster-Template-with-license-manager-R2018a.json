@@ -3,78 +3,16 @@
   "Mappings": {
       "Constants": {
           "InstanceValues": {
-              "ClusterNodeAmi": "ami-08fdc01e31f358f46",
-              "MatlabReleaseSnapshot": "snap-0e0b2cab5d926cfb2",
+              "ClusterNodeAmi": "ami-0b2e4815a2afa9793",
+              "MatlabReleaseSnapshot": "snap-00139cd281a27835a",
               "BootScriptLocation": "https://s3.amazonaws.com/mdcs-on-aws"
           },
           "ReleaseValues": {
-              "ReleaseDate": "20180926"
+              "ReleaseDate": "20180815"
           }
       }
   },
   "Resources": {
-    "VPC": {
-      "Type": "AWS::EC2::VPC",
-      "Properties": {
-        "EnableDnsSupport": "true",
-        "EnableDnsHostnames": "true",
-        "CidrBlock": "10.0.0.0/24",
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": {"Ref": "ClusterName"}
-          }
-        ]
-      }
-    },
-    "ExternalGateway": {
-      "Type": "AWS::EC2::InternetGateway",
-      "Properties": {}
-    },
-    "ExternalVPCAttachment": {
-      "Type": "AWS::EC2::VPCGatewayAttachment",
-      "Properties": {
-        "InternetGatewayId": {"Ref": "ExternalGateway"},
-        "VpcId": {"Ref": "VPC"}
-      }
-    },
-    "PublicSubnet": {
-      "Type": "AWS::EC2::Subnet",
-      "Properties": {
-        "AvailabilityZone" : {"Ref": "AvailabilityZone"},
-        "CidrBlock": "10.0.0.0/24",
-        "MapPublicIpOnLaunch": true,
-        "VpcId": {"Ref": "VPC"},
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": {"Ref": "ClusterName"}
-          }
-        ]
-      }
-    },
-    "PublicRouteTable": {
-      "Type": "AWS::EC2::RouteTable",
-      "Properties": {
-        "VpcId": {"Ref": "VPC"}
-      }
-    },
-    "PublicRoute": {
-      "Type": "AWS::EC2::Route",
-      "DependsOn": "ExternalVPCAttachment",
-      "Properties": {
-        "RouteTableId": {"Ref": "PublicRouteTable"},
-        "DestinationCidrBlock": "0.0.0.0/0",
-        "GatewayId": {"Ref": "ExternalGateway"}
-      }
-    },
-    "TableAssociation": {
-      "Type": "AWS::EC2::SubnetRouteTableAssociation",
-      "Properties": {
-        "RouteTableId": {"Ref": "PublicRouteTable"},
-        "SubnetId": {"Ref": "PublicSubnet"}
-      }
-    },
     "ClusterSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
@@ -149,6 +87,16 @@
         } ]
       }
     },
+    "ClusterIngressRule": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {"Ref": "ClusterSecurityGroup"},
+        "IpProtocol": "tcp",
+        "FromPort": "27350",
+        "ToPort": "27613",
+        "CidrIp": {"Ref": "ClientIPAddress"}
+      }
+    },
     "S3Bucket": {
       "Type": "AWS::S3::Bucket",
       "Properties": { }
@@ -156,7 +104,6 @@
     "Headnode": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
-        "AvailabilityZone" : {"Ref": "AvailabilityZone"},
         "InstanceType": {"Ref": "HeadnodeInstanceType"},
         "IamInstanceProfile": {"Ref": "ClusterInstanceProfile"},
         "SubnetId": {"Ref": "PublicSubnet"},
@@ -192,7 +139,7 @@
                 "export PROFILE_NAME=\"", { "Fn::Join" : ["", [ {"Ref": "ClusterName"}, ".settings" ] ] }, "\"\n",
                 "export S3_BUCKET=s3://", {"Ref": "S3Bucket"}, "\n",
                 "export RELEASE_DATE=", {"Fn::FindInMap": ["Constants", "ReleaseValues", "ReleaseDate"]}, "\n",
-                "export LICENSE_TYPE=Online\n",
+                "export LICENSE_TYPE=Network\n",
                 "function curlWithRetry {\n",
                 "    NUM_ATTEMPTS=3\n",
                 "    RETRY_DELAY=1\n",
@@ -267,7 +214,9 @@
                 "export HEADNODE_INSTANCE_ID=", {"Ref": "Headnode"}, "\n",
                 "export S3_BUCKET=s3://", {"Ref": "S3Bucket"}, "\n",
                 "export RELEASE_DATE=", {"Fn::FindInMap": ["Constants", "ReleaseValues", "ReleaseDate"]}, "\n",
-                "export LICENSE_TYPE=Online\n",
+                "export LICENSE_TYPE=Network\n",
+                "export LICENSE_MANAGER_HOSTNAME=", {"Ref": "LicenseManagerHostname"}, "\n",
+                "export LICENSE_MANAGER_PORT=", {"Ref": "LicenseManagerPort"}, "\n",
                 "function curlWithRetry {\n",
                 "    NUM_ATTEMPTS=3\n",
                 "    RETRY_DELAY=1\n",
@@ -501,6 +450,14 @@
     }
   },
   "Parameters": {
+    "VPC": {
+      "Description": "ID of an existing VPC in which to deploy this stack",
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "PublicSubnet": {
+      "Description": "ID of an existing subnet for the head node and workers. This must be located in an Availability Zone that supports the instance types for the head node and workers.",
+      "Type": "AWS::EC2::Subnet::Id"
+    },
     "ClientIPAddress": {
       "Description": "The IP address range that can be used access the cluster from MATLAB. This must be a valid IP CIDR range of the form x.x.x.x/x. Use the value <your_public_ip_address>/32 to restrict access to only your computer.",
       "Type": "String",
@@ -508,6 +465,17 @@
       "MaxLength": "18",
       "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
       "ConstraintDescription": "Must be a valid IP CIDR range of the form x.x.x.x/x."
+    },
+    "LicenseManagerHostname": {
+      "Description": "The hostname of the Network License Manager for MATLAB to use with this cluster.",
+      "Type": "String"
+    },
+    "LicenseManagerPort": {
+      "Description": "The port of the Network License Manager for MATLAB to use with this cluster.",
+      "Type": "Number",
+      "Default": "27000",
+      "MinValue": "0",
+      "MaxValue": "65535"
     },
     "SSHKeyName": {
       "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instances. If you do not have a KeyPair see the AWS documentation on how to create one.",
@@ -551,10 +519,6 @@
       "Type": "Number",
       "Default": "2",
       "MinValue": "0"
-    },
-    "AvailabilityZone": {
-      "Description": "The availability zone to use",
-      "Type": "AWS::EC2::AvailabilityZone::Name"
     }
   },
   "Conditions": {
@@ -597,11 +561,15 @@
         },
         {
           "Label": {"default": "Amazon EC2 Configuration"},
-          "Parameters": ["HeadnodeInstanceType", "WorkerInstanceType", "AvailabilityZone", "SSHKeyName"]
+          "Parameters": ["HeadnodeInstanceType", "WorkerInstanceType", "SSHKeyName"]
         },
         {
           "Label": {"default": "Network Configuration"},
-          "Parameters": ["ClientIPAddress" ]
+          "Parameters": ["ClientIPAddress", "VPC", "PublicSubnet"]
+        },
+        {
+          "Label": {"default": "Network License Manager details"},
+          "Parameters": ["LicenseManagerHostname", "LicenseManagerPort"]
         }
       ],
       "ParameterLabels": {
@@ -611,9 +579,12 @@
         "DatabaseVolumeSize" : { "default" : "Size (GB) of the database EBS volume" },
         "HeadnodeInstanceType" : { "default" : "Instance type for the head node" },
         "WorkerInstanceType" : { "default" : "Instance type for the worker nodes" },
-        "AvailabilityZone" : { "default" : "Availability zone" },
         "SSHKeyName" : { "default" : "Name of SSH key" },
-        "ClientIPAddress" : { "default" : "CIDR IP address range of client" }
+        "ClientIPAddress" : { "default" : "CIDR IP address range of client" },
+        "LicenseManagerHostname" : { "default" : "Network License Manager hostname" },
+        "LicenseManagerPort" : { "default" : "Network License Manager port" },
+        "VPC" : { "default" : "VPC to deploy this stack to" },
+        "PublicSubnet" : { "default" : "Subnet for the head node and worker nodes" }
       }
     }
   }

@@ -54,6 +54,23 @@ function preWarmMATLAB {
     fi
 }
 
+function initOnlineLicensing {
+
+    # Create a context for online licensing
+    export MHLM_CONTEXT="MDCS_AWS"
+
+    LICENSE_FLAG="-usemhlm"
+}
+
+function initNetworkLicensing {
+
+    # Set up for licensing with the Network License Manager
+    sudo rm /mnt/matlab/licenses/license_info.xml
+    export MLM_LICENSE_FILE=${LICENSE_MANAGER_PORT}@${LICENSE_MANAGER_HOSTNAME}
+
+    LICENSE_FLAG=""
+}
+
 echo "===Setting up MDCS==="
 
 set -x
@@ -166,6 +183,17 @@ else
     sudo mkdir -p ${SECURITY_DIR}
     sudo aws s3 cp --sse AES256 ${S3_BUCKET}/secret ${SECURITY_DIR}/secret
     sudo chmod 600 ${SECURITY_DIR}/secret
+
+fi
+
+# For backwards-compatibility with old templates, if the LICENSE_TYPE
+# variable is not set, default to Online Licensing.
+if [ "${LICENSE_TYPE}" == "Online" ] || [ -z "${LICENSE_TYPE}" ]; then
+    echo "Using Online Licensing"
+    initOnlineLicensing
+elif [ "${LICENSE_TYPE}" == "Network" ]; then
+    echo "Using Network License Manager"
+    initNetworkLicensing
 fi
 
 # All communication to the headnode from any node in the cluster should
@@ -183,10 +211,7 @@ echo "===Starting MDCE==="
 export MDCE_OVERRIDE_EXTERNAL_HOSTNAME=${PUBLIC_HOSTNAME}
 export MDCE_OVERRIDE_INTERNAL_HOSTNAME=${LOCAL_HOSTNAME}
 
-# Create a context for MHLM
-export MHLM_CONTEXT="MDCS_AWS_${RELEASE_DATE}"
-
-sudo -E ./mdce start -usemhlm -hostname ${HOSTNAME_TO_USE} -usesecurecommunication -untrustedclients \
+sudo -E ./mdce start ${LICENSE_FLAG} -hostname ${HOSTNAME_TO_USE} -usesecurecommunication -untrustedclients \
     -sharedsecretfile ${SECURITY_DIR}/secret -workerproxiespoolconnections -enablepeerlookup -loglevel 2 \
     -checkpointbase /mnt/database
 
