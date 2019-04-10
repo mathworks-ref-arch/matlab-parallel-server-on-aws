@@ -3,12 +3,12 @@
   "Mappings": {
       "Constants": {
           "InstanceValues": {
-              "ClusterNodeAmi": "ami-0b2e4815a2afa9793",
-              "MatlabReleaseSnapshot": "snap-00139cd281a27835a",
+              "ClusterNodeAmi": "ami-0bae35c46b0a32c1e",
+              "MatlabReleaseSnapshot": "snap-07781b6a0dd6e2808",
               "BootScriptLocation": "https://s3.amazonaws.com/mdcs-on-aws"
           },
           "ReleaseValues": {
-              "ReleaseDate": "20180815"
+              "ReleaseDate": "20180410"
           }
       }
   },
@@ -87,16 +87,6 @@
         } ]
       }
     },
-    "ClusterIngressRule": {
-      "Type": "AWS::EC2::SecurityGroupIngress",
-      "Properties": {
-        "GroupId": {"Ref": "ClusterSecurityGroup"},
-        "IpProtocol": "tcp",
-        "FromPort": "27350",
-        "ToPort": "27613",
-        "CidrIp": {"Ref": "ClientIPAddress"}
-      }
-    },
     "S3Bucket": {
       "Type": "AWS::S3::Bucket",
       "Properties": { }
@@ -106,8 +96,12 @@
       "Properties": {
         "InstanceType": {"Ref": "HeadnodeInstanceType"},
         "IamInstanceProfile": {"Ref": "ClusterInstanceProfile"},
-        "SubnetId": {"Ref": "PublicSubnet"},
-        "SecurityGroupIds": [{"Ref": "ClusterSecurityGroup"}],
+        "NetworkInterfaces": [ {
+          "AssociatePublicIpAddress": "true",
+          "DeviceIndex": "0",
+          "GroupSet": [{"Ref": "ClusterSecurityGroup"}],
+          "SubnetId": {"Ref": "PublicSubnet"}
+        } ],
         "KeyName": {"Ref": "SSHKeyName"},
         "ImageId": {"Fn::FindInMap": ["Constants", "InstanceValues", "ClusterNodeAmi"]},
         "BlockDeviceMappings": [
@@ -139,7 +133,7 @@
                 "export PROFILE_NAME=\"", { "Fn::Join" : ["", [ {"Ref": "ClusterName"}, ".settings" ] ] }, "\"\n",
                 "export S3_BUCKET=s3://", {"Ref": "S3Bucket"}, "\n",
                 "export RELEASE_DATE=", {"Fn::FindInMap": ["Constants", "ReleaseValues", "ReleaseDate"]}, "\n",
-                "export LICENSE_TYPE=Network\n",
+                "export LICENSE_TYPE=Online\n",
                 "function curlWithRetry {\n",
                 "    NUM_ATTEMPTS=3\n",
                 "    RETRY_DELAY=1\n",
@@ -187,6 +181,7 @@
       "DependsOn" : "Headnode",
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
+        "AssociatePublicIpAddress": "true",
         "SecurityGroups": [{"Ref": "ClusterSecurityGroup"}],
         "BlockDeviceMappings": [
           {
@@ -214,9 +209,7 @@
                 "export HEADNODE_INSTANCE_ID=", {"Ref": "Headnode"}, "\n",
                 "export S3_BUCKET=s3://", {"Ref": "S3Bucket"}, "\n",
                 "export RELEASE_DATE=", {"Fn::FindInMap": ["Constants", "ReleaseValues", "ReleaseDate"]}, "\n",
-                "export LICENSE_TYPE=Network\n",
-                "export LICENSE_MANAGER_HOSTNAME=", {"Ref": "LicenseManagerHostname"}, "\n",
-                "export LICENSE_MANAGER_PORT=", {"Ref": "LicenseManagerPort"}, "\n",
+                "export LICENSE_TYPE=Online\n",
                 "function curlWithRetry {\n",
                 "    NUM_ATTEMPTS=3\n",
                 "    RETRY_DELAY=1\n",
@@ -455,7 +448,7 @@
       "Type": "AWS::EC2::VPC::Id"
     },
     "PublicSubnet": {
-      "Description": "ID of an existing subnet for the head node and workers. This must be located in an Availability Zone that supports the instance types for the head node and workers.",
+      "Description": "ID of an existing subnet for the head node and workers",
       "Type": "AWS::EC2::Subnet::Id"
     },
     "ClientIPAddress": {
@@ -465,17 +458,6 @@
       "MaxLength": "18",
       "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
       "ConstraintDescription": "Must be a valid IP CIDR range of the form x.x.x.x/x."
-    },
-    "LicenseManagerHostname": {
-      "Description": "The hostname of the network license manager for MATLAB to use with this cluster.",
-      "Type": "String"
-    },
-    "LicenseManagerPort": {
-      "Description": "The port of the network license manager for MATLAB to use with this cluster.",
-      "Type": "Number",
-      "Default": "27000",
-      "MinValue": "0",
-      "MaxValue": "65535"
     },
     "SSHKeyName": {
       "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instances. If you do not have a KeyPair see the AWS documentation on how to create one.",
@@ -566,10 +548,6 @@
         {
           "Label": {"default": "Network Configuration"},
           "Parameters": ["ClientIPAddress", "VPC", "PublicSubnet"]
-        },
-        {
-          "Label": {"default": "Network license manager details"},
-          "Parameters": ["LicenseManagerHostname", "LicenseManagerPort"]
         }
       ],
       "ParameterLabels": {
@@ -581,8 +559,6 @@
         "WorkerInstanceType" : { "default" : "Instance type for the worker nodes" },
         "SSHKeyName" : { "default" : "Name of SSH key" },
         "ClientIPAddress" : { "default" : "CIDR IP address range of client" },
-        "LicenseManagerHostname" : { "default" : "Network license manager hostname" },
-        "LicenseManagerPort" : { "default" : "Network license manager port" },
         "VPC" : { "default" : "VPC to deploy this stack to" },
         "PublicSubnet" : { "default" : "Subnet for the head node and worker nodes" }
       }

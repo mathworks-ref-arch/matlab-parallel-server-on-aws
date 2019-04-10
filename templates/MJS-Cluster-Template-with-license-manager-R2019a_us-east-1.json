@@ -3,12 +3,12 @@
   "Mappings": {
       "Constants": {
           "InstanceValues": {
-              "ClusterNodeAmi": "ami-0b2e4815a2afa9793",
-              "MatlabReleaseSnapshot": "snap-00139cd281a27835a",
+              "ClusterNodeAmi": "ami-09db2d6815b18ebf2",
+              "MatlabReleaseSnapshot": "snap-0d1d043bcae88aab3",
               "BootScriptLocation": "https://s3.amazonaws.com/mdcs-on-aws"
           },
           "ReleaseValues": {
-              "ReleaseDate": "20180815"
+              "ReleaseDate": "20180410"
           }
       }
   },

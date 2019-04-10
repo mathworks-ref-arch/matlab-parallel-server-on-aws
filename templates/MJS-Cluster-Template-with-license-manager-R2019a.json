@@ -3,12 +3,12 @@
   "Mappings": {
       "Constants": {
           "InstanceValues": {
-              "ClusterNodeAmi": "ami-0b2e4815a2afa9793",
-              "MatlabReleaseSnapshot": "snap-00139cd281a27835a",
-              "BootScriptLocation": "https://s3.amazonaws.com/mdcs-on-aws"
+              "ClusterNodeAmi": "ami-0aebb1fd8ae7173a2",
+              "MatlabReleaseSnapshot": "snap-0ef7d502ced4e9d83",
+              "BootScriptLocation": "https://s3.amazonaws.com/mjs-on-ec2"
           },
           "ReleaseValues": {
-              "ReleaseDate": "20180815"
+              "ReleaseDate": "development"
           }
       }
   },
@@ -42,12 +42,12 @@
     },
     "ClusterSecurityGroupInternalTrafficRule" : {
       "Type": "AWS::EC2::SecurityGroupIngress",
-      "DependsOn": "ClusterSecurityGroup",
+      "DependsOn": "ClusterSecurityGroup", 
       "Properties": {
         "GroupId": {"Ref": "ClusterSecurityGroup"},
         "IpProtocol": "tcp",
         "FromPort": "1",
-        "ToPort": "65535",
+        "ToPort": "65535",       
         "SourceSecurityGroupId": {"Ref": "ClusterSecurityGroup"}
       }
     },

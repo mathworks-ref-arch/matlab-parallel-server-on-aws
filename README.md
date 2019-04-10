@@ -1,40 +1,40 @@
-# MATLAB Distributed Computing Server on Amazon Web Services
+# MATLAB Parallel Server on Amazon Web Services
 
 # Requirements
 
 Before starting, you will need the following:
 
-- MATLAB Distributed Computing Server™ license. For more information, see [Configuring License in the Cloud](https://www.mathworks.com/support/cloud/configure-matlab-distributed-computing-server-licensing-on-the-cloud.html).
+- MATLAB Parallel Server™ license. For more information on how to configure your license for cloud use, see [MATLAB Parallel Server on the Cloud](https://www.mathworks.com/help/licensingoncloud/matlab-parallel-server-on-the-cloud.html)
 
 - MATLAB® R2018b and Parallel Computing Toolbox™ on your desktop.
 
-- An Amazon Web Services™ (AWS) account with required permissions. To see what is required look at the [example policy](/doc/mdcs-on-aws-iam-policy.json). For more information about the services used see [Learn About Cluster Architecture](#learn-about-cluster-architecture).
+- An Amazon Web Services™ (AWS) account with required permissions. To see what is required look at the [example policy](/doc/matlab-parallel-server-on-aws-iam-policy.json). For more information about the services used see [Learn About Cluster Architecture](#learn-about-cluster-architecture).
 
-- An SSH Key Pair for your AWS account in the US East (N. Virginia) region. Create an SSH key pair if you do not already have one. For instructions [see the AWS documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html).
+- An SSH Key Pair for your AWS account in your chosen region (see [deployment option documentation](#choose-a-deployment-option) for supported regions, examples use `us-east-1`). Create an SSH key pair if you do not already have one. For instructions [see the AWS documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html).
 
 # Costs
 You are responsible for the cost of the AWS services used when you create cloud resources using this guide. Resource settings, such as instance type, will affect the cost of deployment. For cost estimates, see the pricing pages for each AWS service you will be using. Prices are subject to change.
 
 # Introduction
-The following guide will help you automate the process of launching MATLAB Distributed Computing Server and MATLAB Job Scheduler on Amazon EC2 resources in your Amazon Web Services (AWS) account. For information about the architecture of this solution, see [Learn About Cluster Architecture](#learn-about-cluster-architecture).
+The following guide will help you automate the process of launching MATLAB Parallel Server and MATLAB Job Scheduler on Amazon EC2 resources in your Amazon Web Services (AWS) account. For information about the architecture of this solution, see [Learn About Cluster Architecture](#learn-about-cluster-architecture).
 
 Use this reference architecture to control every aspect of your cloud resources. Alternatively, for an easier onramp, you can use [MathWorks Cloud Center](https://www.mathworks.com/help/cloudcenter/index.html) to manage the platform for you. Cloud Center is simpler but less configurable.
 
 # Choose a Deployment Option
-The MATLAB Distributed Computing Server cloud reference architecture for AWS supports two license configurations: online licensing and a network license manager. For more information, see [Configure MATLAB Distributed Computing Server Licensing on the Cloud](https://www.mathworks.com/support/cloud/configure-matlab-distributed-computing-server-licensing-on-the-cloud.html).
+The MATLAB Parallel Server cloud reference architecture for AWS supports two license configurations: online licensing and a network license manager. For more information on how to configure your license for cloud use, see [MATLAB Parallel Server on the Cloud](https://www.mathworks.com/help/licensingoncloud/matlab-parallel-server-on-the-cloud.html).
 
-* [Deploy MATLAB Distributed Computing Server on AWS using Online Licensing](doc/online-licensing-instructions.md)
-* [Deploy MATLAB Distributed Computing Server on AWS using Network License Manager](doc/license-manager-instructions.md)
+* [Deploy MATLAB Parallel Server on AWS using Online Licensing](doc/online-licensing-instructions.md)
+* [Deploy MATLAB Parallel Server on AWS using Network License Manager](doc/license-manager-instructions.md)
 
 # Learn About Cluster Architecture
 
-Parallel Computing Toolbox and MATLAB Distributed Computing Server software let you solve computationally and data-intensive programs using MATLAB and Simulink on computer clusters, clouds, and grids. Parallel processing constructs such as parallel-for loops and code blocks, distributed arrays, parallel numerical algorithms, and message-passing functions let you implement task-parallel and data-parallel algorithms at a high level in MATLAB. To learn more see the documentation: [Parallel Computing Toolbox](https://www.mathworks.com/help/distcomp) and [MATLAB Distributed Computing Server](https://www.mathworks.com/help/mdce). 
+Parallel Computing Toolbox and MATLAB Parallel Server software let you solve computationally and data-intensive programs using MATLAB and Simulink on computer clusters, clouds, and grids. Parallel processing constructs such as parallel-for loops and code blocks, distributed arrays, parallel numerical algorithms, and message-passing functions let you implement task-parallel and data-parallel algorithms at a high level in MATLAB. To learn more see the documentation: [Parallel Computing Toolbox](https://www.mathworks.com/help/parallel-computing) and [MATLAB Parallel Server](https://www.mathworks.com/help/matlab-parallel-server/).
 
-The MATLAB Job Scheduler is a built-in scheduler that ships with MATLAB Distributed Computing Server. The scheduler coordinates the execution of jobs, and distributes the tasks for evaluation to the server’s individual MATLAB sessions called workers.
+The MATLAB Job Scheduler is a built-in scheduler that ships with MATLAB Parallel Server. The scheduler coordinates the execution of jobs, and distributes the tasks for evaluation to the server’s individual MATLAB sessions called workers.
 
-AWS is a set of cloud services which allow you to build, deploy, and manage applications hosted in Amazon’s global network of data centres. This guide will help you launch a compute cluster using compute, storage, and network services hosted by AWS. Find out more about the range of [cloud-based products offered by AWS](https://aws.amazon.com/products/). Services launched in AWS can be created, managed, and deleted using the AWS Management Console. For more information about the AWS Management Console, see [AWS Management Console](https://aws.amazon.com/documentation/awsconsolehelpdocs/). 
+AWS is a set of cloud services which allow you to build, deploy, and manage applications hosted in Amazon’s global network of data centres. This guide will help you launch a compute cluster using compute, storage, and network services hosted by AWS. Find out more about the range of [cloud-based products offered by AWS](https://aws.amazon.com/products/). Services launched in AWS can be created, managed, and deleted using the AWS Management Console. For more information about the AWS Management Console, see [AWS Management Console](https://aws.amazon.com/documentation/awsconsolehelpdocs/).
 
-The MATLAB Job Scheduler and the resources required by it are created using [AWS CloudFormation templates](https://aws.amazon.com/cloudformation/). The cluster architecture created by the template is illustrated in Figure 2, it defines the resources below. For more information about each resource see the [AWS CloudFormation template reference.](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-reference.html) 
+The MATLAB Job Scheduler and the resources required by it are created using [AWS CloudFormation templates](https://aws.amazon.com/cloudformation/). The cluster architecture created by the template is illustrated in Figure 2, it defines the resources below. For more information about each resource see the [AWS CloudFormation template reference.](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-reference.html)
 
 ![Cluster Architecture](/doc/MJS_in_AWS_architecture.png?raw=true)
 
@@ -73,4 +73,3 @@ Provide suggestions for additional features or capabilities using the following 
 
 # Technical Support
 Email: `cloud-support@mathworks.com`
-

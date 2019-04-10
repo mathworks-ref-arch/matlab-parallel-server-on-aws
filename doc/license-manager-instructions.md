@@ -1,30 +1,32 @@
-# MATLAB Distributed Computing Server on AWS using a Network License Manager
+# MATLAB Parallel Server on AWS using a Network License Manager
 
 # Requirements
 
 Before starting, you will need the following:
 
-* A network license manager for MATLAB hosting sufficient MATLAB Distributed Computing Server licenses for you cluster. MathWorks provide a reference architecture to deploy a suitable [Network License Manager for MATLAB on AWS](https://github.com/mathworks-ref-arch/license-manager-for-matlab-on-aws).
+* A network license manager for MATLAB hosting sufficient MATLAB Parallel Server licenses for you cluster. MathWorks provide a reference architecture to deploy a suitable [Network License Manager for MATLAB on AWS](https://github.com/mathworks-ref-arch/license-manager-for-matlab-on-aws).
 
 ## Step 1. Launch the Template
 
 Click the **Launch Stack** button below to deploy the cloud resources on AWS. This will open the AWS console in your web browser.
 
-[![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start a cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mdcs-on-aws/MJS-Cluster-Template-with-license-manager-R2018b.json)
+[![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start a cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mdcs-on-aws/MJS-Cluster-Template-with-license-manager-R2019a_us-east-1.json)
 
-> Platform: Ubuntu Xenial (16.04)
+> Platform: "Ubuntu 18.04 LTS"
 
-> MATLAB Release: R2018b
+> MATLAB Release: R2019a
 
-For other releases, see [How do I launch a template that uses a previous MATLAB release?](#how-do-i-launch-a-template-that-uses-a-previous-matlab-release)
+> AWS Region: us-east-1
+
+For other releases or regions, see [Templates for All Supported MATLAB Versions and AWS Regions](#templates-for-all-supported-matlab-versions-and-aws-regions)
 
 ## Step 2. Configure the Cloud Resources
 After you click the Launch Stack button above, the “Create stack” page will open in your browser where you can configure the parameters. It is easier to complete the steps if you position these instructions and the AWS console window side by side.
 
 1. Specify and check the defaults for these resource parameters:
 
-    | Parameter label                                    | Description 
-    | -------------------------------------------------- | ----------- 
+    | Parameter label                                    | Description
+    | -------------------------------------------------- | -----------
     | **Stack name** (required)                              | Choose a name for the stack. This will be shown in the AWS console.
     | **Cluster name** (required)                            | Choose a name to use for the cluster. This name will be shown in MATLAB when connected to the cluster.
     | **Number of worker instances** (required)              | Choose the number of AWS instances to start for the workers.
@@ -90,8 +92,15 @@ If your stack fails to create, check the events section of the CloudFormation co
 
 If the stack created successfully but you are unable to validate the cluster check the logs on the instances to diagnose the error. The logs are output to /var/log on the instance nodes; the files of interest are cloud-init.log, cloud-init-output.log, mathworks.log and all the logs under /var/log/mdce.
 
-## How do I launch a template that uses a previous MATLAB release?
+## Templates for All Supported MATLAB Versions and AWS Regions
 
-| Release | Ubuntu Xenial (16.04) |
-| ------- | --------------------- |
-| MATLAB R2018a | [![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start a cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mdcs-on-aws/MJS-Cluster-Template-with-license-manager-R2018a.json) |
+To deploy a template, select a MATLAB version (e.g., R2019a), the template type (e.g., MJS-Cluster-Template-with-license-manager) and the AWS region into which you will be deploying (e.g., eu-west-1) from the following table.
+
+As of R2019a, this reference architecture supports the eu-west-1 AWS region in addition to us-east-1.
+
+ | Release | Region | Template | Base Operating System | Launch |
+ | ------- | ------ | -------- | --------------------- | ------ |
+ | MATLAB R2019a | us-east-1 | MJS-Cluster-Template-with-license-manager | Ubuntu 18.04 LTS | [![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start a cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mdcs-on-aws/MJS-Cluster-Template-with-license-manager-R2019a_us-east-1.json) |
+ | MATLAB R2019a | eu-west-1 | MJS-Cluster-Template-with-license-manager | Ubuntu 18.04 LTS | [![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start a cluster using the template")](https://eu-west-1.console.aws.amazon.com/cloudformation/home?region=eu-west-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mdcs-on-aws/MJS-Cluster-Template-with-license-manager-R2019a_eu-west-1.json) |
+ | MATLAB R2018b | us-east-1 | MJS-Cluster-Template-with-license-manager | Ubuntu 16.04 LTS | [![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start a cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mdcs-on-aws/MJS-Cluster-Template-with-license-manager-R2018b_us-east-1.json) |
+ | MATLAB R2018a | us-east-1 | MJS-Cluster-Template-with-license-manager | Ubuntu 16.04 LTS | [![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start a cluster using the template")](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/mdcs-on-aws/MJS-Cluster-Template-with-license-manager-R2018a_us-east-1.json) |
