@@ -50,7 +50,7 @@ The MATLAB Job Scheduler and the resources required by it are created using [AWS
   * Subnet Route Table Association (AWS::EC2::SubnetRouteTableAssociation)
 * Security Group (AWS::EC2::SecurityGroup): The security group defines the ports that are opened for ingress to the cluster:
   * 22: Required for SSH access to the cluster nodes.
-  * 27350 – 27537 + (4 * number of workers): Required for communication from clients to the job scheduler and worker processes. The default maximum number of workers supported is 64, so the port range is 27350-27613.
+  * 27350 – 27357 + (4 * number of workers): Required for communication from clients to the job scheduler and worker processes. The default maximum number of workers supported is 64, so the port range is 27350-27613.
 * Internal Security Group Traffic Rule (AWS::EC2::SecurityGroupIngress): Opens access to network traffic between all cluster nodes internally.
 
 ### Instances
