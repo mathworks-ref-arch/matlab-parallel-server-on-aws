@@ -1,0 +1,851 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Mappings": {
+    "RegionMap": {
+      "us-east-1": {
+        "AMI": "ami-05b8a03d5b1915668"
+      },
+      "eu-west-1": {
+        "AMI": "ami-06c4adf5c17fffd14"
+      }
+    }
+  },
+  "Resources": {
+    "ClusterSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "GroupDescription": "Allow remote access for MATLAB and SSH, and internal traffic",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "27350",
+            "ToPort": "27613",
+            "CidrIp": {
+              "Ref": "ClientIPAddress"
+            }
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "22",
+            "ToPort": "22",
+            "CidrIp": {
+              "Ref": "ClientIPAddress"
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Ref": "ClusterName"
+            }
+          }
+        ]
+      }
+    },
+    "ClusterSecurityGroupInternalTrafficRule": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "DependsOn": "ClusterSecurityGroup",
+      "Properties": {
+        "GroupId": {
+          "Ref": "ClusterSecurityGroup"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "1",
+        "ToPort": "65535",
+        "SourceSecurityGroupId": {
+          "Ref": "ClusterSecurityGroup"
+        }
+      }
+    },
+    "ClusterInstanceRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "s3-access-policy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:*"
+                  ],
+                  "Resource": [
+                    "*"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ClusterInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "ClusterInstanceRole"
+          }
+        ]
+      }
+    },
+    "S3Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {}
+    },
+    "Headnode": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "InstanceType": {
+          "Ref": "HeadnodeInstanceType"
+        },
+        "IamInstanceProfile": {
+          "Ref": "ClusterInstanceProfile"
+        },
+        "SecurityGroupIds": [
+          {
+            "Ref": "ClusterSecurityGroup"
+          },
+          {
+            "Fn::If": [
+              "AddSG",
+              {
+                "Ref": "AdditionalSecurityGroup"
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          }
+        ],
+        "SubnetId": {
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "Subnets"
+            }
+          ]
+        },
+        "KeyName": {
+          "Ref": "SSHKeyName"
+        },
+        "ImageId": {
+          "Fn::If": [
+            "OverrideAmi",
+            {
+              "Ref": "InstanceAmiCustom"
+            },
+            {
+              "Fn::FindInMap": [
+                "RegionMap",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "AMI"
+              ]
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "ClusterName"
+                  },
+                  "-Headnode"
+                ]
+              ]
+            }
+          },
+          {
+            "Key": "NodeType",
+            "Value": "Headnode"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "\n",
+              [
+                "#!/usr/bin/env bash",
+                "# Copyright 2011-2019 The MathWorks, Inc.",
+                "export NODE_TYPE=HEADNODE",
+                {
+                  "Fn::Sub": "export JOB_MANAGER_NAME=\"${ClusterName}\""
+                },
+                {
+                  "Fn::Sub": "export WORKERS_PER_NODE=\"${NumWorkersPerNode}\""
+                },
+                {
+                  "Fn::Sub": "export PROFILE_NAME=\"${ClusterName}.settings\""
+                },
+                {
+                  "Fn::Sub": "export S3_BUCKET=\"s3://${S3Bucket}\""
+                },
+                {
+                  "Fn::Sub": "export LICENSE_MANAGER=\"${LicenseManager}\""
+                },
+                "/home/ubuntu/start.sh 2>&1 > /var/log/mathworks.log"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "DatabaseVolume": {
+      "Type": "AWS::EC2::Volume",
+      "Condition": "CreateDBVolume",
+      "Properties": {
+        "Size": {
+          "Ref": "DatabaseVolumeSize"
+        },
+        "AvailabilityZone": {
+          "Fn::GetAtt": [
+            "Headnode",
+            "AvailabilityZone"
+          ]
+        }
+      }
+    },
+    "DatabaseMountPoint": {
+      "Type": "AWS::EC2::VolumeAttachment",
+      "Condition": "CreateDBVolume",
+      "Properties": {
+        "InstanceId": {
+          "Ref": "Headnode"
+        },
+        "VolumeId": {
+          "Ref": "DatabaseVolume"
+        },
+        "Device": "/dev/sdh"
+      }
+    },
+    "WorkerConfig": {
+      "DependsOn": "Headnode",
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+        "SecurityGroups": [
+          {
+            "Ref": "ClusterSecurityGroup"
+          },
+          {
+            "Fn::If": [
+              "AddSG",
+              {
+                "Ref": "AdditionalSecurityGroup"
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          }
+        ],
+        "ImageId": {
+          "Fn::If": [
+            "OverrideAmi",
+            {
+              "Ref": "InstanceAmiCustom"
+            },
+            {
+              "Fn::FindInMap": [
+                "RegionMap",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "AMI"
+              ]
+            }
+          ]
+        },
+        "InstanceType": {
+          "Ref": "WorkerInstanceType"
+        },
+        "IamInstanceProfile": {
+          "Ref": "ClusterInstanceProfile"
+        },
+        "KeyName": {
+          "Ref": "SSHKeyName"
+        },
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "\n",
+              [
+                "#!/usr/bin/env bash",
+                "# Copyright 2011-2019 The MathWorks, Inc.",
+                "export NODE_TYPE=WORKER",
+                {
+                  "Fn::Sub": "export HEADNODE_NAME=\"${Headnode.PublicDnsName}\""
+                },
+                {
+                  "Fn::Sub": "export HEADNODE_PRIVATE_IP=\"${Headnode.PrivateIp}\""
+                },
+                {
+                  "Fn::Sub": "export PROFILE_NAME=\"${ClusterName}.settings\""
+                },
+                {
+                  "Fn::Sub": "export JOB_MANAGER_NAME=\"${ClusterName}\""
+                },
+                {
+                  "Fn::Sub": "export WORKERS_PER_NODE=\"${NumWorkersPerNode}\""
+                },
+                {
+                  "Fn::Sub": "export HEADNODE_INSTANCE_ID=\"${Headnode}\""
+                },
+                {
+                  "Fn::Sub": "export S3_BUCKET=\"s3://${S3Bucket}\""
+                },
+                {
+                  "Fn::Sub": "export LICENSE_MANAGER=\"${LicenseManager}\""
+                },
+                "/home/ubuntu/start.sh 2>&1 > /var/log/mathworks.log"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "ClusterScalingGroup": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "Properties": {
+        "LaunchConfigurationName": {
+          "Ref": "WorkerConfig"
+        },
+        "DesiredCapacity": {
+          "Ref": "NumWorkerNodes"
+        },
+        "MinSize": "0",
+        "MaxSize": {
+          "Ref": "NumWorkerNodes"
+        },
+        "VPCZoneIdentifier": {
+          "Ref": "Subnets"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Ref": "ClusterName"
+            },
+            "PropagateAtLaunch": "true"
+          },
+          {
+            "Key": "NodeType",
+            "Value": "WorkerNode",
+            "PropagateAtLaunch": "true"
+          }
+        ]
+      }
+    },
+    "S3DeleteBucketsRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "lambda_basic_execution",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": "arn:aws:logs:*:*:*"
+                }
+              ]
+            }
+          },
+          {
+            "PolicyName": "s3-delete-bucket",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:DeleteBucket",
+                    "s3:ListBucket"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "S3Bucket",
+                      "Arn"
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "PolicyName": "s3-delete-object",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:DeleteObject"
+                  ],
+                  "Resource": {
+                    "Fn::Join": [
+                      "/",
+                      [
+                        {
+                          "Fn::GetAtt": [
+                            "S3Bucket",
+                            "Arn"
+                          ]
+                        },
+                        "*"
+                      ]
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "EmptyBucketsLambda": {
+      "DependsOn": "S3Bucket",
+      "Properties": {
+        "Code": {
+          "ZipFile": {
+            "Fn::Join": [
+              "\n",
+              [
+                "/*",
+                " * Copyright 2017-2019 The MathWorks, Inc.",
+                " */",
+                "",
+                "'use strict';",
+                "",
+                "var AWS = require('aws-sdk');",
+                "var s3 = new AWS.S3();",
+                "",
+                "exports.handler = (event, context) => {",
+                "  console.log('Executing emptyBuckets lambda. Event: ' + JSON.stringify(event) + ', context: ' + JSON.stringify(context));",
+                "  if (event.RequestType === 'Delete') {",
+                "    var bucketName = event.ResourceProperties.BucketName;",
+                "    s3.listObjectsV2({'Bucket': bucketName}, function(err, result) {",
+                "      if (err) return sendResponse(event, context, 'FAILED', err);",
+                "      if (result.Contents.length > 0) {",
+                "        var objectList = result.Contents.map(c => ({'Key': c.Key}));",
+                "        var obj = {",
+                "          'Bucket': bucketName,",
+                "          'Delete': {",
+                "            'Objects': objectList",
+                "          }",
+                "        };",
+                "        console.log(JSON.stringify(obj));",
+                "        s3.deleteObjects(obj, function(e, data) {",
+                "          if (e) return sendResponse(event, context, 'FAILED', e);",
+                "          sendResponse(event, context, 'SUCCESS', {'Message': bucketName + ' emptied. ' + JSON.stringify(data)});",
+                "        });",
+                "      } else {",
+                "          sendResponse(event, context, 'SUCCESS', {'Message': bucketName + ' already empty.'});",
+                "      }",
+                "    });",
+                "  } else {",
+                "    sendResponse(event, context, 'SUCCESS', {'Message': 'Lambda created and run successfully'});",
+                "  }",
+                "};",
+                "",
+                "// From AWS user guide at https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/walkthrough-custom-resources-lambda-lookup-amiids.html",
+                "function sendResponse(event, context, responseStatus, responseData) {",
+                "",
+                "    var responseBody = JSON.stringify({",
+                "        Status: responseStatus,",
+                "        Reason: 'See the details in CloudWatch Log Stream: ' + context.logStreamName,",
+                "        PhysicalResourceId: context.logStreamName,",
+                "        StackId: event.StackId,",
+                "        RequestId: event.RequestId,",
+                "        LogicalResourceId: event.LogicalResourceId,",
+                "        Data: responseData",
+                "    });",
+                "",
+                "    console.log('RESPONSE BODY:\\n', responseBody);",
+                "",
+                "    var https = require('https');",
+                "    var url = require('url');",
+                "",
+                "    var parsedUrl = url.parse(event.ResponseURL);",
+                "    var options = {",
+                "        hostname: parsedUrl.hostname,",
+                "        port: 443,",
+                "        path: parsedUrl.path,",
+                "        method: 'PUT',",
+                "        headers: {",
+                "            'content-type': '',",
+                "            'content-length': responseBody.length",
+                "        }",
+                "    };",
+                "",
+                "    console.log('SENDING RESPONSE...\\n');",
+                "",
+                "    var request = https.request(options, function(response) {",
+                "        console.log('STATUS: ' + response.statusCode);",
+                "        console.log('HEADERS: ' + JSON.stringify(response.headers));",
+                "        // Tell AWS Lambda that the function execution is done",
+                "        context.done();",
+                "    });",
+                "",
+                "    request.on('error', function(error) {",
+                "        console.log('sendResponse Error:' + error);",
+                "        // Tell AWS Lambda that the function execution is done",
+                "        context.done();",
+                "    });",
+                "",
+                "    // write data to request body",
+                "    request.write(responseBody);",
+                "    request.end();",
+                "}"
+              ]
+            ]
+          }
+        },
+        "Handler": "index.handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "S3DeleteBucketsRole",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs8.10"
+      },
+      "Type": "AWS::Lambda::Function"
+    },
+    "EmptyBuckets": {
+      "Type": "Custom::LambdaDependency",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "EmptyBucketsLambda",
+            "Arn"
+          ]
+        },
+        "BucketName": {
+          "Ref": "S3Bucket"
+        }
+      }
+    }
+  },
+  "Parameters": {
+    "VPC": {
+      "Description": "ID of an existing VPC in which to deploy this stack",
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "Subnets": {
+      "Description": "List of existing subnets IDs for the head node and workers",
+      "Type": "List<AWS::EC2::Subnet::Id>"
+    },
+    "ClientIPAddress": {
+      "Description": "The IP address range that will be allowed to connect to this cluster from outside of the VPC. This field should be formatted as <ip_address>/<mask>. E.g. 10.0.0.1/32. This is the public IP address which can be found by searching for 'what is my ip address' on the web. The mask determines the number of IP addresses to include. A mask of 32 is a single IP address. This calculator can be used to build a specific range: https://www.ipaddressguide.com/cidr. You may need to contact your IT administrator to determine which address is appropriate.",
+      "Type": "String",
+      "MinLength": "9",
+      "MaxLength": "18",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "Must be a valid IP CIDR range of the form x.x.x.x/x."
+    },
+    "SSHKeyName": {
+      "Description": "The name of an existing EC2 KeyPair to allow SSH access to all the instances. See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html for details on creating these.",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "ConstraintDescription": "Must be the name of an existing EC2 KeyPair."
+    },
+    "ClusterName": {
+      "Description": "A name to use for this cluster. This name will be shown in MATLAB as the cluster profile name.",
+      "Type": "String",
+      "AllowedPattern": "[A-Za-z][A-Za-z0-9 ]+",
+      "ConstraintDescription": "Must only include alphanumeric characters and spaces and cannot start with a space or number."
+    },
+    "HeadnodeInstanceType": {
+      "Description": "The AWS instance type to use for the head node, which will run the job manager. No workers will be started on this node, so this can be a smaller instance type than the worker nodes. See https://aws.amazon.com/ec2/instance-types for a list of instance types. Must be available in the Availability Zone of the first subnet in the configured list",
+      "Default": "t3.medium",
+      "Type": "String",
+      "MinLength": 1,
+      "ConstraintDescription": "The headnode instance type must be specified"
+    },
+    "InstanceAmiCustom": {
+      "Default": "",
+      "Description": "Custom Amazon Machine Image (AMI) in the target region",
+      "Type": "String"
+    },
+    "DatabaseVolumeSize": {
+      "Description": "The size in GB of the EBS volume to use for the database. All job and task information, including input and output data will be stored on this volume and should therefore have enough capacity to store the expected amount of data. If this parameter is set to 0 no volume will be created and the root volume of the instance will be used for the database.",
+      "Type": "Number",
+      "Default": "100",
+      "MinValue": "0"
+    },
+    "WorkerInstanceType": {
+      "Description": "The AWS instance type to use for the workers. See https://aws.amazon.com/ec2/instance-types for a list of instance types.",
+      "Default": "m5.xlarge",
+      "Type": "String",
+      "MinLength": 1,
+      "ConstraintDescription": "The worker instance type must be specified"
+    },
+    "NumWorkerNodes": {
+      "Description": "The number of AWS instances to start for the workers to run on.",
+      "Type": "Number",
+      "Default": "2",
+      "MinValue": "0"
+    },
+    "NumWorkersPerNode": {
+      "Description": "The number of MATLAB workers to start on each instance. Specify 1 worker for every 2 vCPUs, because this results in 1 worker per physical core. For example an m4.16xlarge instance has 64 vCPUs, so can support 32 MATLAB workers. See https://aws.amazon.com/ec2/instance-types for details on vCPUs for each instance type.",
+      "Type": "Number",
+      "Default": "2",
+      "MinValue": "0"
+    },
+    "LicenseManager": {
+      "Description": "Optional License Manager for MATLAB string in the form <port>@<hostname>. If not specified, online licensing is used. If specified, the license manager must be accessible from the specified VPC and subnets. If the Network License Manager for MATLAB was deployed using the reference architecture, this can be achieved by specifying the security group of that deployment as the AdditionalSecurityGroup parameter.",
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "([0-9]+@[a-zA-Z0-9.\\-]+)?",
+      "ConstraintDescription": "If specified, must be in the form <port>@<hostname>"
+    },
+    "AdditionalSecurityGroup": {
+      "Description": "The ID of an additional (optional) Security Group for the instances to be placed in. Often the License Manager for MATLAB's Security Group.",
+      "Type": "String",
+      "Default": ""
+    }
+  },
+  "Rules": {
+    "SubnetsInVPC": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::EachMemberEquals": [
+              {
+                "Fn::ValueOfAll": [
+                  "AWS::EC2::Subnet::Id",
+                  "VpcId"
+                ]
+              },
+              {
+                "Ref": "VPC"
+              }
+            ]
+          },
+          "AssertDescription": "All subnets must exist in the VPC you have selected."
+        }
+      ]
+    }
+  },
+  "Conditions": {
+    "CreateDBVolume": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "DatabaseVolumeSize"
+            },
+            "0"
+          ]
+        }
+      ]
+    },
+    "OverrideAmi": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "InstanceAmiCustom"
+            },
+            ""
+          ]
+        }
+      ]
+    },
+    "AddSG": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AdditionalSecurityGroup"
+            },
+            ""
+          ]
+        }
+      ]
+    }
+  },
+  "Outputs": {
+    "HeadnodeInstanceId": {
+      "Description": "Instance ID of the headnode",
+      "Value": {
+        "Ref": "Headnode"
+      }
+    },
+    "HeadnodePublicDNS": {
+      "Description": "Public DNSName of the newly created EC2 instance",
+      "Value": {
+        "Fn::GetAtt": [
+          "Headnode",
+          "PublicDnsName"
+        ]
+      }
+    },
+    "S3Bucket": {
+      "Value": {
+        "Ref": "S3Bucket"
+      },
+      "Description": "The name of the S3 bucket the profile has been saved to"
+    },
+    "ProfileName": {
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            {
+              "Ref": "ClusterName"
+            },
+            ".settings"
+          ]
+        ]
+      },
+      "Description": "The name of the profile"
+    },
+    "BucketURL": {
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://s3.console.aws.amazon.com/s3/buckets/",
+            {
+              "Ref": "S3Bucket"
+            },
+            "/"
+          ]
+        ]
+      },
+      "Description": "The URL of the S3 bucket in the AWS console that contains the profile"
+    }
+  },
+  "Metadata": {
+    "StackType": "MJS",
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": {
+            "default": "MATLAB Job Scheduler Configuration"
+          },
+          "Parameters": [
+            "ClusterName",
+            "NumWorkerNodes",
+            "NumWorkersPerNode"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Amazon EC2 Configuration"
+          },
+          "Parameters": [
+            "HeadnodeInstanceType",
+            "WorkerInstanceType",
+            "DatabaseVolumeSize",
+            "SSHKeyName"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Network Configuration"
+          },
+          "Parameters": [
+            "VPC",
+            "Subnets",
+            "ClientIPAddress",
+            "AdditionalSecurityGroup"
+          ]
+        },
+        {
+          "Label": {
+            "default": "License Configuration"
+          },
+          "Parameters": [
+            "LicenseManager"
+          ]
+        }
+      ],
+      "ParameterLabels": {
+        "ClusterName": {
+          "default": "Cluster name"
+        },
+        "NumWorkerNodes": {
+          "default": "Number of worker nodes"
+        },
+        "NumWorkersPerNode": {
+          "default": "Number of workers to start on each node"
+        },
+        "DatabaseVolumeSize": {
+          "default": "Size (GB) of the database EBS volume"
+        },
+        "HeadnodeInstanceType": {
+          "default": "Instance type for the head node"
+        },
+        "WorkerInstanceType": {
+          "default": "Instance type for the worker nodes"
+        },
+        "SSHKeyName": {
+          "default": "Name of SSH key"
+        },
+        "ClientIPAddress": {
+          "default": "CIDR IP address range of client"
+        },
+        "VPC": {
+          "default": "VPC to deploy this stack to"
+        },
+        "Subnets": {
+          "default": "Subnets for the head node and worker nodes"
+        },
+        "LicenseManager": {
+          "default": "License Manager for MATLAB connection string"
+        },
+        "AdditionalSecurityGroup": {
+          "default": "Additional security group to place instances in"
+        }
+      }
+    }
+  }
+}
