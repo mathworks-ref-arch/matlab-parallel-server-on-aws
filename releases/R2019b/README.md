@@ -48,7 +48,7 @@ When you click Create, the cluster is created using AWS CloudFormation templates
 1. After clicking **Create** you will be taken to the Stack Detail page for your Stack. Wait for the Status to reach **CREATE\_COMPLETE**. This may take up to 10 minutes.
 2. Select **Outputs**.
 
-    ![Stack Outputs On Completion](../img/cloudformation-stack-creation-complete.png)
+    ![Stack Outputs On Completion](../../img/cloudformation-stack-creation-complete.png)
 
 3. Click the link next to **BucketURL** under **Outputs**.
 4. Select the profile (**ClusterName.settings**) and click **Download**.
@@ -73,7 +73,7 @@ You can remove the CloudFormation stack and all associated resources when you ar
 
 1. Select the Stack in the CloudFormation Stacks screen.  Select **Actions/Delete**.
 
-     ![CloudFormation Stacks Delete](../img/cloudformation-delete-stack.png)
+     ![CloudFormation Stacks Delete](../../img/cloudformation-delete-stack.png)
 
 2. Confirm the delete when prompted.  CloudFormation will now delete your resources which can take a few minutes.
 
