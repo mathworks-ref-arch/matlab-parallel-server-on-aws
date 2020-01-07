@@ -427,7 +427,7 @@
             ]
           }
         },
-        "Runtime": "nodejs6.10"
+        "Runtime": "nodejs12.x"
       }
     },
     "EmptyBuckets": {
