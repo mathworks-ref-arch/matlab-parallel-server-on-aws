@@ -28,6 +28,7 @@ To view instructions for deploying the MATLAB Parallel Server reference architec
 
 | Release |
 | ------- |
+| [R2020a](releases/R2020a/README.md) |
 | [R2019b](releases/R2019b/README.md) |
 | [R2019a\_and\_older](releases/R2019a_and_older/README.md) |
 
@@ -46,8 +47,6 @@ The MATLAB Job Scheduler and the resources required by it are created using [AWS
 
 ### Networking resources
 * Security Group (AWS::EC2::SecurityGroup): The security group defines the ports that are opened for ingress to the cluster:
-  * 22: Required for SSH access to the cluster nodes.
-  * 27350 – 27357 + (4 * number of workers): Required for communication from clients to the job scheduler and worker processes. The default maximum number of workers supported is 64, so the port range is 27350-27613.
 * Internal Security Group Traffic Rule (AWS::EC2::SecurityGroupIngress): Opens access to network traffic between all cluster nodes internally.
 
 ### Instances
@@ -65,8 +64,19 @@ The MATLAB Job Scheduler and the resources required by it are created using [AWS
 * Lambda function to empty the S3 bucket (AWS::Lambda::Function): A lambda function that will empty the S3 bucket created above to allow Cloud Formation to successfully delete the S3 bucket when the cluster is shut down.
 * Custom lambda dependency (Custom::LambdaDependency): A custom dependency used to trigger the lambda function when the Cloud Formation stack is deleted.
 
-# Enhancement Request
-Provide suggestions for additional features or capabilities using the following link: [https://www.mathworks.com/cloud/enhancement-request.html](https://www.mathworks.com/cloud/enhancement-request.html)
+## Additional information
+
+### Copy the VM Image into your account
+
+You can copy the AMI for a certain MATLAB version to a target region of your choice.
+
+* In the Releases folder of this repository, choose the MATLAB release that you want to copy. Download and open the CloudFormation template .json file for that release.
+* Locate the Mappings section in the CloudFormation template. Copy the AMI ID for one of the existing regions, for example, us-east-1.
+* To copy the AMI to your target region, [follow the instructions at Copying an AMI on the AWS documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/CopyingAMIs.html).
+* In the Mappings section of the CloudFormation template, add a new RegionMap pair corresponding to your target region. Insert the new AMI ID of the AMI in the target region.
+* In your AWS Console, change your region to your target region. In the CloudFormation menu, select Create Stack > With new resources option. Provide the modified CloudFormation template.
+
+You can now deploy the AMI in your target region using the AMI that you copied.
 
 # Technical Support
-Email: `cloud-support@mathworks.com`
+If you require assistance or have a request for additional features or capabilities, please contact [MathWorks Technical Support](https://www.mathworks.com/support/contact_us.html).
