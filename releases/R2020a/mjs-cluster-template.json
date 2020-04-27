@@ -44,6 +44,9 @@
       "ap-south-1": {
         "AMI": "ami-007fc4c9e1bef5751"
       },
+      "ap-northeast-1": {
+        "AMI": "ami-04b0252e4818dee39"
+      },
       "ap-northeast-2": {
         "AMI": "ami-0914fa3f49afee457"
       },
