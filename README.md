@@ -28,6 +28,7 @@ To view instructions for deploying the MATLAB Parallel Server reference architec
 
 | Release |
 | ------- |
+| [R2020b](releases/R2020b/README.md) |
 | [R2020a](releases/R2020a/README.md) |
 | [R2019b](releases/R2019b/README.md) |
 | [R2019a\_and\_older](releases/R2019a_and_older/README.md) |
