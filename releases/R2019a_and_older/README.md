@@ -67,9 +67,3 @@ The MATLAB Job Scheduler and the resources required by it are created using [AWS
 * IAM role for deletion of S3 bucket (AWS::IAM::Role): The S3 bucket cannot be automatically deleted by Cloud Formation unless it is empty. This role gives permissions for an AWS lambda function to empty the S3 bucket during shut down of the cluster.
 * Lambda function to empty the S3 bucket (AWS::Lambda::Function): A lambda function that will empty the S3 bucket created above to allow Cloud Formation to successfully delete the S3 bucket when the cluster is shut down.
 * Custom lambda dependency (Custom::LambdaDependency): A custom dependency used to trigger the lambda function when the Cloud Formation stack is deleted.
-
-# Enhancement Request
-Provide suggestions for additional features or capabilities using the following link: [https://www.mathworks.com/cloud/enhancement-request.html](https://www.mathworks.com/cloud/enhancement-request.html)
-
-# Technical Support
-Email: `cloud-support@mathworks.com`
