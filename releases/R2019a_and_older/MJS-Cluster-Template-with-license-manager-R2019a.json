@@ -159,7 +159,16 @@
                 "    done\n",
                 "    return 1\n",
                 "}\n",
-                "bash <(curlWithRetry ", {"Fn::FindInMap": ["Constants", "InstanceValues", "BootScriptLocation"]}, "/boot-mdcs.sh) 2>&1 > /var/log/mathworks.log\n"
+                "bash <(curlWithRetry ", {"Fn::FindInMap": ["Constants", "InstanceValues", "BootScriptLocation"]}, "/boot-mdcs.sh) 2>&1 > /var/log/mathworks.log\n",
+				"if [ 'No' == '",
+                { "Ref": "SuppressSecurityUpdates" },
+                "' ]\n",
+                " then \n",
+                "#install unattended-upgrades\n",
+                "sudo apt-get update --fix-missing\n",
+                "sudo apt-get install unattended-upgrades\n",
+                "\n",
+                "fi\n"
               ]
             ]
           }
@@ -236,7 +245,16 @@
                 "    done\n",
                 "    return 1\n",
                 "}\n",
-                "bash <(curlWithRetry ", {"Fn::FindInMap": ["Constants", "InstanceValues", "BootScriptLocation"]}, "/boot-mdcs.sh) 2>&1 > /var/log/mathworks.log\n"
+                "bash <(curlWithRetry ", {"Fn::FindInMap": ["Constants", "InstanceValues", "BootScriptLocation"]}, "/boot-mdcs.sh) 2>&1 > /var/log/mathworks.log\n",
+				"if [ 'No' == '",
+                { "Ref": "SuppressSecurityUpdates" },
+                "' ]\n",
+                " then \n",
+                "#install unattended-upgrades\n",
+                "sudo apt-get update --fix-missing\n",
+                "sudo apt-get install unattended-upgrades\n",
+                "\n",
+                "fi\n"
               ]
             ]
           }
@@ -519,6 +537,13 @@
       "Type": "Number",
       "Default": "2",
       "MinValue": "0"
+    },
+    "SuppressSecurityUpdates": {
+      "Description": "By default, the un-attended critical security upgrades are enabled, a user can explicitly suppress the security upgrades at their own risk.",
+      "Type": "String",
+      "Default": "No",
+      "AllowedPattern": "(?:Yes|No)",
+      "ConstraintDescription": "If specified, must be either No or Yes"
     }
   },
   "Conditions": {
@@ -570,6 +595,10 @@
         {
           "Label": {"default": "Network license manager details"},
           "Parameters": ["LicenseManagerHostname", "LicenseManagerPort"]
+        },
+        {
+          "Label": {"default": "Un-attended Security Updates"},
+          "Parameters": ["SuppressSecurityUpdates"]
         }
       ],
       "ParameterLabels": {
@@ -584,7 +613,8 @@
         "LicenseManagerHostname" : { "default" : "Network license manager hostname" },
         "LicenseManagerPort" : { "default" : "Network license manager port" },
         "VPC" : { "default" : "VPC to deploy this stack to" },
-        "PublicSubnet" : { "default" : "Subnet for the head node and worker nodes" }
+        "PublicSubnet" : { "default" : "Subnet for the head node and worker nodes" },
+        "SuppressSecurityUpdates": { "default": "Suppress critical security updates" }
       }
     }
   }
