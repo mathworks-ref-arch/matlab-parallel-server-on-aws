@@ -1,4 +1,4 @@
-# MATLAB Parallel Server on Amazon Web Services
+# MATLAB Parallel Server on Amazon Web Services (Linux VM)
 
 # Requirements
 
@@ -12,13 +12,13 @@ Before starting, you will need the following:
 
 * An Amazon Web Services™ (AWS) account with required permissions. To see what is required look at the [example policy](matlab-parallel-server-on-aws-iam-policy.json). For more information about the services used see [Learn About Cluster Architecture](#learn-about-cluster-architecture).
 
-* An SSH Key Pair for your AWS account in your chosen region (see [deployment option documentation](#choose-a-deployment-option) for supported regions, examples use `us-east-1`). Create an SSH key pair if you do not already have one. For instructions [see the AWS documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html).
+* An SSH Key Pair for your AWS account in your chosen region. Create an SSH key pair if you do not already have one. For instructions [see the AWS documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html).
 
 # Costs
 You are responsible for the cost of the AWS services used when you create cloud resources using this guide. Resource settings, such as instance type, will affect the cost of deployment. For cost estimates, see the pricing pages for each AWS service you will be using. Prices are subject to change.
 
 # Introduction
-The following guide will help you automate the process of launching MATLAB Parallel Server and MATLAB Job Scheduler on Amazon EC2 resources in your Amazon Web Services (AWS) account. For information about the architecture of this solution, see [Learn About Cluster Architecture](#learn-about-cluster-architecture).
+The following guide will help you automate the process of launching MATLAB Parallel Server and MATLAB Job Scheduler, running on Linux virtual machines, on Amazon EC2 resources with your Amazon Web Services (AWS) account. For information about the architecture of this solution, see [Learn About Cluster Architecture](#learn-about-cluster-architecture).
 
 Use this reference architecture to control every aspect of your cloud resources. Alternatively, for an easier onramp, you can use [MathWorks Cloud Center](https://www.mathworks.com/help/cloudcenter/index.html) to manage the platform for you. Cloud Center is simpler, but not customisable.
 
@@ -28,6 +28,7 @@ To view instructions for deploying the MATLAB Parallel Server reference architec
 
 | Release |
 | ------- |
+| [R2021a](releases/R2021a/README.md) |
 | [R2020b](releases/R2020b/README.md) |
 | [R2020a](releases/R2020a/README.md) |
 | [R2019b](releases/R2019b/README.md) |
