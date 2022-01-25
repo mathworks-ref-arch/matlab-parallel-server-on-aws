@@ -35,21 +35,23 @@ After you click the Launch Stack button above, the “Create stack” page will 
 
 | Parameter label | Description |
 | --------------- | ----------- |
-| **VPC to deploy this stack to** | ID of an existing VPC in which to deploy this stack |
-| **Subnets for the head node and worker nodes** | List of existing subnets IDs for the head node and workers |
-| **CIDR IP address range of client** | The IP address range that will be allowed to connect to this cluster from outside of the VPC. This field should be formatted as \<ip_address>/\<mask>. E.g. 10.0.0.1/32. This is the public IP address which can be found by searching for 'what is my ip address' on the web. The mask determines the number of IP addresses to include. A mask of 32 is a single IP address. This calculator can be used to build a specific range: https://www.ipaddressguide.com/cidr. You may need to contact your IT administrator to determine which address is appropriate. |
-| **Name of SSH key** | The name of an existing EC2 KeyPair to allow SSH access to all the instances. See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html for details on creating these. |
-| **Cluster name** | A name to use for this cluster. This name will be shown in MATLAB as the cluster profile name. |
-| **Instance type for the head node** | The AWS instance type to use for the head node, which will run the job manager. No workers will be started on this node, so this can be a smaller instance type than the worker nodes. See https://aws.amazon.com/ec2/instance-types for a list of instance types. Must be available in the Availability Zone of the first subnet in the configured list |
-| **InstanceAmiCustom** | Custom Amazon Machine Image (AMI) in the target region |
-| **Size (GB) of the database EBS volume** | The size in GB of the EBS volume to use for the database. All job and task information, including input and output data will be stored on this volume and should therefore have enough capacity to store the expected amount of data. If this parameter is set to 0 no volume will be created and the root volume of the instance will be used for the database. |
-| **Instance type for the worker nodes** | The AWS instance type to use for the workers. See https://aws.amazon.com/ec2/instance-types for a list of instance types. |
-| **Number of worker nodes** | The number of AWS instances to start for the workers to run on. |
-| **Number of workers to start on each node** | The number of MATLAB workers to start on each instance. Specify 1 worker for every 2 vCPUs, because this results in 1 worker per physical core. For example an m4.16xlarge instance has 64 vCPUs, so can support 32 MATLAB workers. See https://aws.amazon.com/ec2/instance-types for details on vCPUs for each instance type. |
+| **VPC to deploy this stack to** | ID of an existing VPC in which to deploy this stack. |
+| **Subnets for the head node and worker nodes** | List of existing subnets IDs for the head node and workers. |
+| **CIDR IP address range of client** | IP address range that will be allowed to connect to this cluster from outside of the VPC. This field should be formatted as \<ip_address>/\<mask>. E.g. 10.0.0.1/32. This is the public IP address which can be found by searching for 'what is my ip address' on the web. The mask determines the number of IP addresses to include. A mask of 32 is a single IP address. This calculator can be used to build a specific range: https://www.ipaddressguide.com/cidr. You may need to contact your IT administrator to determine which address is appropriate. |
+| **Name of SSH key** | Name of an existing EC2 KeyPair to allow SSH access to all the instances. See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html for details on creating these. |
+| **Cluster name** | Name to use for this cluster. This name will be shown in MATLAB as the cluster profile name. |
+| **Instance type for the head node** | AWS instance type to use for the head node, which will run the job manager. No workers will be started on this node, so this can be a smaller instance type than the worker nodes. See https://aws.amazon.com/ec2/instance-types for a list of instance types. Must be available in the Availability Zone of the first subnet in the configured list. |
+| **InstanceAmiCustom** | Custom Amazon Machine Image (AMI) in the target region. |
+| **Size (GB) of the database EBS volume** | Size in GB of the EBS volume to use for the database. All job and task information, including input and output data will be stored on this volume and should therefore have enough capacity to store the expected amount of data. If this parameter is set to 0 no volume will be created and the root volume of the instance will be used for the database. |
+| **Instance type for the worker nodes** | AWS instance type to use for the workers. See https://aws.amazon.com/ec2/instance-types for a list of instance types. |
+| **Number of worker nodes** | Number of AWS instances to start for the workers to run on. |
+| **Minimum number of worker nodes** | Minimum number of AWS instances running at all times. |
+| **Maximum number of worker nodes** | Maximum number of AWS instances running at all times. |
+| **Number of workers to start on each node** | Number of MATLAB workers to start on each instance. Specify "auto" to get the optimal number of MATLAB workers for your instance type (1 worker per physical core). For example an m4.16xlarge instance has 64 vCPUs, so can support 32 MATLAB workers. Otherwise, specify a positive number. See https://aws.amazon.com/ec2/instance-types for details on vCPUs for each instance type. |
 | **License Manager for MATLAB connection string** | Optional License Manager for MATLAB string in the form \<port>@\<hostname>. If not specified, online licensing is used. If specified, the license manager must be accessible from the specified VPC and subnets. If the Network License Manager for MATLAB was deployed using the reference architecture, this can be achieved by specifying the security group of that deployment as the AdditionalSecurityGroup parameter. |
-| **Configure cloudwatch logging for the MATLAB Parallel Server instances** | Choose whether you want to use enable cloudwatch logging for the MATLAB Parallel Server instances |
-| **Additional security group to place instances in** | The ID of an additional (optional) Security Group for the instances to be placed in. Often the License Manager for MATLAB's Security Group. |
-| **Enable instance scale-in protection** | By default, the instance scale-in protection is disabled. Choose either 'true' or 'false'. For more information about scale-in protection, see https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws#use-scale-in-protection |
+| **Configure cloudwatch logging for the MATLAB Parallel Server instances** | Flag indicating whether cloudwatch logging for the MATLAB Parallel Server instances is enabled. |
+| **Additional security group to place instances in** | ID of an additional (optional) Security Group for the instances to be placed in. Often the License Manager for MATLAB's Security Group. |
+| **Enable instance scale-in protection** | Flag indicating whether instance scale-in protection is enabled. For more information about scale-in protection, see https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws#use-scale-in-protection. |
 
 
 3. Tick the box to accept that the template uses IAM roles. These roles allow:
@@ -112,14 +114,13 @@ You can remove the CloudFormation stack and all associated resources when you ar
 
 ## Use Scale-In Protection
 
-To prevent the unsafe termination of worker instances, you can enable the scale-in protection feature by setting `Enable instance scale-in protection` to `True` at the time of stack creation. This feature applies the [instance scale-in protection](https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-instance-protection.html) to all worker instances. This feature is optional and it is disabled by default.
+To prevent the unsafe termination of worker instances, enable scale-in protection by setting `Enable instance scale-in protection` to `Yes` when you create the stack. Scale-in protection applies [instance scale-in protection](https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-instance-protection.html) to all worker instances. Scale-in protection is optional and is disabled by default.
 
-When this feature is not enabled at the time of deployment, if the desired capacity is decreased, the AWS Auto Scaling Group terminates worker instances until the desired capacity is matched. This means that worker instances with on-going work could be terminated to match the desired capacity.
+When scale-in protection is disabled, the AWS Auto Scaling group can terminate instances to match the desired capacity. In this situation, MATLAB workers with on-going work can be suspended.
 
-When this feature is enabled at the time of deployment, all new worker instances have scale-in protection. This prevents the AWS Auto Scaling Group to terminate them unless they are unprotected. If this feature is enabled, the custom `scale-in-protection` service runs on the headnode periodically every minute. When the desired capacity is decreased, this service detects the new desired capacity and only unprotects those instances where all worker processes are idle until the new desired capacity is matched.
+When scale-in protection is enabled, the AWS Auto Scaling group cannot terminate an instance unless it is unprotected. Scale-in protection unprotects instances where all MATLAB workers are idle until the desired capacity is matched.
 
-You can modify the automation script for scale-in-protection in the headnode at: `/usr/local/bin/scale-in-protection.py`.
-If you do not need scale-in protection but you deployed the stack with this feature enabled, redeploy the stack with this feature disabled.
+To disable scale-in protection in a deployed stack, redeploy the stack with scale-in protection disabled.
 
 
 ## Troubleshooting

@@ -26,9 +26,9 @@ Use this reference architecture to control every aspect of your cloud resources.
 
 To view instructions for deploying the MATLAB Parallel Server reference architecture, select a MATLAB release:
 
-| Linux | Windows |
-| ------- | ------- |
-| [R2021b](releases/R2021b/README.md) | [R2021b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2021b) |
+| Release |
+| ------- |
+| [R2021b](releases/R2021b/README.md) |
 | [R2021a](releases/R2021a/README.md) |
 | [R2020b](releases/R2020b/README.md) |
 | [R2020a](releases/R2020a/README.md) |

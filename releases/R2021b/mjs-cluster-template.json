@@ -3,58 +3,58 @@
   "Mappings": {
     "RegionMap": {
       "us-east-1": {
-        "AMI": "ami-076a7b441b564e01f"
+        "AMI": "ami-0d1af17a123516d80"
       },
       "us-east-2": {
-        "AMI": "ami-06384fa4091cbb27b"
+        "AMI": "ami-039eab73a51d60316"
       },
       "us-west-1": {
-        "AMI": "ami-0bd46cd489c5d3409"
+        "AMI": "ami-08b64b335ad9285a0"
       },
       "us-west-2": {
-        "AMI": "ami-0e4b4e1aec7fa1690"
+        "AMI": "ami-09318fec489be5ada"
       },
       "ca-central-1": {
-        "AMI": "ami-0558b46bc6811b7bf"
+        "AMI": "ami-0bf934944e9cbd2cf"
       },
       "eu-central-1": {
-        "AMI": "ami-030430bdcef52c9df"
+        "AMI": "ami-09b5bb7170653cd1a"
       },
       "eu-west-1": {
-        "AMI": "ami-07fda44ad34e1edc3"
+        "AMI": "ami-0adac31ef44fa1e00"
       },
       "eu-west-2": {
-        "AMI": "ami-06c3cb6743335c9a7"
+        "AMI": "ami-09c387e0af2c4c3fd"
       },
       "eu-west-3": {
-        "AMI": "ami-0327679f90fc19aef"
+        "AMI": "ami-0f60b267f2338eb6f"
       },
       "eu-north-1": {
-        "AMI": "ami-07bb259d3611e6730"
+        "AMI": "ami-00a1ad4f43d987d95"
       },
       "sa-east-1": {
-        "AMI": "ami-0bd94935afc67b572"
+        "AMI": "ami-0c1ff613d1291f292"
       },
       "me-south-1": {
-        "AMI": "ami-032e136385b3fb3a1"
+        "AMI": "ami-0f7d4c66746c44deb"
       },
       "ap-east-1": {
-        "AMI": "ami-0b34d814440f37e75"
+        "AMI": "ami-085d110aba3f282da"
       },
       "ap-south-1": {
-        "AMI": "ami-03c9e8397f55d3bb5"
+        "AMI": "ami-04e4a7a5f1dbc206a"
       },
       "ap-northeast-1": {
-        "AMI": "ami-0cde953cb98fbdc6f"
+        "AMI": "ami-054dc383083efa923"
       },
       "ap-northeast-2": {
-        "AMI": "ami-000fcb01b1a731934"
+        "AMI": "ami-059914e810515195e"
       },
       "ap-southeast-1": {
-        "AMI": "ami-020ad2e8a402d01d3"
+        "AMI": "ami-0d7f1ce95108db951"
       },
       "ap-southeast-2": {
-        "AMI": "ami-0f5417432243b7d84"
+        "AMI": "ami-04a67127381faea98"
       }
     }
   },
@@ -239,6 +239,12 @@
                 {
                   "Sid": "VisualEditor1",
                   "Effect": "Allow",
+                  "Action": "ec2:DescribeInstanceTypes",
+                  "Resource": "*"
+                },
+                {
+                  "Sid": "VisualEditor2",
+                  "Effect": "Allow",
                   "Action": "ec2:TerminateInstances",
                   "Resource": "*",
                   "Condition": {
@@ -248,6 +254,12 @@
                       }
                     }
                   }
+                },
+                {
+                  "Sid": "VisualEditor3",
+                  "Effect": "Allow",
+                  "Action": "cloudformation:DescribeStackResource",
+                  "Resource": "*"
                 }
               ]
             }
@@ -402,6 +414,20 @@
                 }
               ]
             }
+          },
+          {
+            "PolicyName": "ec2-access-policy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "VisualEditor0",
+                  "Effect": "Allow",
+                  "Action": "ec2:DescribeInstanceTypes",
+                  "Resource": "*"
+                }
+              ]
+            }
           }
         ]
       }
@@ -507,6 +533,12 @@
                 },
                 {
                   "Fn::Sub": "export WORKERS_PER_NODE=\"${NumWorkersPerNode}\""
+                },
+                {
+                  "Fn::Sub": "export WORKER_INSTANCE_TYPE=\"${WorkerInstanceType}\""
+                },
+                {
+                  "Fn::Sub": "export MAX_NODES=\"${MaxWorkerNodes}\""
                 },
                 {
                   "Fn::Sub": "export PROFILE_NAME=\"${ClusterName}.settings\""
@@ -660,6 +692,9 @@
                   "Fn::Sub": "export WORKERS_PER_NODE=\"${NumWorkersPerNode}\""
                 },
                 {
+                  "Fn::Sub": "export WORKER_INSTANCE_TYPE=\"${WorkerInstanceType}\""
+                },
+                {
                   "Fn::Sub": "export HEADNODE_INSTANCE_ID=\"${Headnode}\""
                 },
                 {
@@ -717,14 +752,20 @@
           "Ref": "WorkerConfig"
         },
         "NewInstancesProtectedFromScaleIn": {
-          "Ref": "EnableScaleInProtection"
+          "Fn::If": [
+            "UseScaleInProtection",
+            true,
+            false
+          ]
         },
         "DesiredCapacity": {
           "Ref": "NumWorkerNodes"
         },
-        "MinSize": "0",
+        "MinSize": {
+          "Ref": "MinWorkerNodes"
+        },
         "MaxSize": {
-          "Ref": "NumWorkerNodes"
+          "Ref": "MaxWorkerNodes"
         },
         "VPCZoneIdentifier": {
           "Ref": "Subnets"
@@ -1166,19 +1207,19 @@
   },
   "Parameters": {
     "VPC": {
-      "Description": "ID of an existing VPC in which to deploy this stack",
+      "Description": "ID of an existing VPC in which to deploy this stack.",
       "Type": "AWS::EC2::VPC::Id",
       "ConstraintDescription": "Must be the ID of an existing VPC.",
       "AllowedPattern": ".+"
     },
     "Subnets": {
-      "Description": "List of existing subnets IDs for the head node and workers",
+      "Description": "List of existing subnets IDs for the head node and workers.",
       "Type": "List<AWS::EC2::Subnet::Id>",
       "ConstraintDescription": "Must be the ID of existing subnets within the chosen VPC.",
       "AllowedPattern": ".+"
     },
     "ClientIPAddress": {
-      "Description": "The IP address range that will be allowed to connect to this cluster from outside of the VPC. This field should be formatted as <ip_address>/<mask>. E.g. 10.0.0.1/32. This is the public IP address which can be found by searching for 'what is my ip address' on the web. The mask determines the number of IP addresses to include. A mask of 32 is a single IP address. This calculator can be used to build a specific range: https://www.ipaddressguide.com/cidr. You may need to contact your IT administrator to determine which address is appropriate.",
+      "Description": "IP address range that will be allowed to connect to this cluster from outside of the VPC. This field should be formatted as <ip_address>/<mask>. E.g. 10.0.0.1/32. This is the public IP address which can be found by searching for 'what is my ip address' on the web. The mask determines the number of IP addresses to include. A mask of 32 is a single IP address. This calculator can be used to build a specific range: https://www.ipaddressguide.com/cidr. You may need to contact your IT administrator to determine which address is appropriate.",
       "Type": "String",
       "MinLength": "9",
       "MaxLength": "18",
@@ -1186,53 +1227,66 @@
       "ConstraintDescription": "Must be a valid IP CIDR range of the form x.x.x.x/x."
     },
     "SSHKeyName": {
-      "Description": "The name of an existing EC2 KeyPair to allow SSH access to all the instances. See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html for details on creating these.",
+      "Description": "Name of an existing EC2 KeyPair to allow SSH access to all the instances. See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html for details on creating these.",
       "Type": "AWS::EC2::KeyPair::KeyName",
       "ConstraintDescription": "Must be the name of an existing EC2 KeyPair.",
       "AllowedPattern": ".+"
     },
     "ClusterName": {
-      "Description": "A name to use for this cluster. This name will be shown in MATLAB as the cluster profile name.",
+      "Description": "Name to use for this cluster. This name will be shown in MATLAB as the cluster profile name.",
       "Type": "String",
       "AllowedPattern": "[A-Za-z][A-Za-z0-9 ]+",
       "ConstraintDescription": "Must only include alphanumeric characters and spaces and cannot start with a space or number."
     },
     "HeadnodeInstanceType": {
-      "Description": "The AWS instance type to use for the head node, which will run the job manager. No workers will be started on this node, so this can be a smaller instance type than the worker nodes. See https://aws.amazon.com/ec2/instance-types for a list of instance types. Must be available in the Availability Zone of the first subnet in the configured list",
+      "Description": "AWS instance type to use for the head node, which will run the job manager. No workers will be started on this node, so this can be a smaller instance type than the worker nodes. See https://aws.amazon.com/ec2/instance-types for a list of instance types. Must be available in the Availability Zone of the first subnet in the configured list.",
       "Default": "t3.medium",
       "Type": "String",
       "MinLength": 1,
-      "ConstraintDescription": "The headnode instance type must be specified"
+      "ConstraintDescription": "The headnode instance type must be specified."
     },
     "InstanceAmiCustom": {
       "Default": "",
-      "Description": "Custom Amazon Machine Image (AMI) in the target region",
+      "Description": "Custom Amazon Machine Image (AMI) in the target region.",
       "Type": "String"
     },
     "DatabaseVolumeSize": {
-      "Description": "The size in GB of the EBS volume to use for the database. All job and task information, including input and output data will be stored on this volume and should therefore have enough capacity to store the expected amount of data. If this parameter is set to 0 no volume will be created and the root volume of the instance will be used for the database.",
+      "Description": "Size in GB of the EBS volume to use for the database. All job and task information, including input and output data will be stored on this volume and should therefore have enough capacity to store the expected amount of data. If this parameter is set to 0 no volume will be created and the root volume of the instance will be used for the database.",
       "Type": "Number",
       "Default": "100",
       "MinValue": "0"
     },
     "WorkerInstanceType": {
-      "Description": "The AWS instance type to use for the workers. See https://aws.amazon.com/ec2/instance-types for a list of instance types.",
+      "Description": "AWS instance type to use for the workers. See https://aws.amazon.com/ec2/instance-types for a list of instance types.",
       "Default": "c5.xlarge",
       "Type": "String",
       "MinLength": 1,
-      "ConstraintDescription": "The worker instance type must be specified"
+      "ConstraintDescription": "The worker instance type must be specified."
     },
     "NumWorkerNodes": {
-      "Description": "The number of AWS instances to start for the workers to run on.",
+      "Description": "Number of AWS instances to start for the workers to run on.",
       "Type": "Number",
       "Default": "2",
+      "MinValue": "0"
+    },
+    "MinWorkerNodes": {
+      "Description": "Minimum number of AWS instances running at all times.",
+      "Type": "Number",
+      "Default": "0",
+      "MinValue": "0"
+    },
+    "MaxWorkerNodes": {
+      "Description": "Maximum number of AWS instances running at all times.",
+      "Type": "Number",
+      "Default": "4",
       "MinValue": "0"
     },
     "NumWorkersPerNode": {
-      "Description": "The number of MATLAB workers to start on each instance. Specify 1 worker for every 2 vCPUs, because this results in 1 worker per physical core. For example an m4.16xlarge instance has 64 vCPUs, so can support 32 MATLAB workers. See https://aws.amazon.com/ec2/instance-types for details on vCPUs for each instance type.",
-      "Type": "Number",
-      "Default": "2",
-      "MinValue": "0"
+      "Description": "Number of MATLAB workers to start on each instance. Specify \"auto\" to get the optimal number of MATLAB workers for your instance type (1 worker per physical core). For example an m4.16xlarge instance has 64 vCPUs, so can support 32 MATLAB workers. Otherwise, specify a positive number. See https://aws.amazon.com/ec2/instance-types for details on vCPUs for each instance type.",
+      "Type": "String",
+      "Default": "auto",
+      "AllowedPattern": "auto|\\d+",
+      "ConstraintDescription": "Must be \"auto\" or a positive number."
     },
     "LicenseManager": {
       "Description": "Optional License Manager for MATLAB string in the form <port>@<hostname>. If not specified, online licensing is used. If specified, the license manager must be accessible from the specified VPC and subnets. If the Network License Manager for MATLAB was deployed using the reference architecture, this can be achieved by specifying the security group of that deployment as the AdditionalSecurityGroup parameter.",
@@ -1242,7 +1296,7 @@
       "ConstraintDescription": "If specified, must be in the form <port>@<hostname>"
     },
     "EnableCloudWatch": {
-      "Description": "Choose whether you want to use enable cloudwatch logging for the MATLAB Parallel Server instances",
+      "Description": "Flag indicating whether cloudwatch logging for the MATLAB Parallel Server instances is enabled.",
       "Type": "String",
       "AllowedValues": [
         "Yes",
@@ -1251,19 +1305,18 @@
       "Default": "No"
     },
     "AdditionalSecurityGroup": {
-      "Description": "The ID of an additional (optional) Security Group for the instances to be placed in. Often the License Manager for MATLAB's Security Group.",
+      "Description": "ID of an additional (optional) Security Group for the instances to be placed in. Often the License Manager for MATLAB's Security Group.",
       "Type": "String",
       "Default": ""
     },
     "EnableScaleInProtection": {
-      "Description": "By default, the instance scale-in protection is disabled. Choose either 'true' or 'false'. For more information about scale-in protection, see https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws#use-scale-in-protection",
+      "Description": "Flag indicating whether instance scale-in protection is enabled. For more information about scale-in protection, see https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws#use-scale-in-protection.",
       "Type": "String",
-      "Default": false,
       "AllowedValues": [
-        true,
-        false
+        "Yes",
+        "No"
       ],
-      "ConstraintDescription": "Must be either 'true' or 'false'"
+      "Default": "No"
     }
   },
   "Rules": {
@@ -1330,6 +1383,14 @@
         "Yes",
         {
           "Ref": "EnableCloudWatch"
+        }
+      ]
+    },
+    "UseScaleInProtection": {
+      "Fn::Equals": [
+        "Yes",
+        {
+          "Ref": "EnableScaleInProtection"
         }
       ]
     }
@@ -1481,6 +1542,8 @@
           "Parameters": [
             "ClusterName",
             "NumWorkerNodes",
+            "MinWorkerNodes",
+            "MaxWorkerNodes",
             "NumWorkersPerNode"
           ]
         },
@@ -1524,7 +1587,7 @@
         },
         {
           "Label": {
-            "default": "Instance scale-in protection"
+            "default": "Instance Scale-In Protection"
           },
           "Parameters": [
             "EnableScaleInProtection"
@@ -1537,6 +1600,12 @@
         },
         "NumWorkerNodes": {
           "default": "Number of worker nodes"
+        },
+        "MinWorkerNodes": {
+          "default": "Minimum number of worker nodes"
+        },
+        "MaxWorkerNodes": {
+          "default": "Maximum number of worker nodes"
         },
         "NumWorkersPerNode": {
           "default": "Number of workers to start on each node"
