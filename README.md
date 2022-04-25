@@ -22,6 +22,10 @@ The following guide will help you automate the process of launching MATLAB Paral
 
 Use this reference architecture to control every aspect of your cloud resources. Alternatively, for an easier onramp, you can use [MathWorks Cloud Center](https://www.mathworks.com/help/cloudcenter/index.html) to manage the platform for you. Cloud Center is simpler, but not customisable.
 
+This reference architecture has been reviewed and qualified by AWS.
+
+![AWS Qualified Software badge](img/aws-qualified-software.png)
+
 # Deployment Steps
 
 To view instructions for deploying the MATLAB Parallel Server reference architecture, select a MATLAB release:
