@@ -1,26 +1,22 @@
-# MATLAB Parallel Server on Amazon Web Services (Linux VM)
+# MATLAB Parallel Server on Amazon Web Services
 
 # Requirements
 
 Before starting, you will need the following:
 
-* MATLAB Parallel Server™ license. For more information on how to configure your license for cloud use, see [MATLAB Parallel Server on the Cloud]( https://mathworks.com/help/matlab-parallel-server/configure-matlab-parallel-server-licensing-for-cloud-platforms.html). Either:
-    * MATLAB Parallel Server TM license configured to use online licensing for MATLAB.
-    * A network license manager for MATLAB hosting sufficient MATLAB Parallel Server licenses for you cluster. MathWorks provide a reference architecture to deploy a suitable [Network License Manager for MATLAB on AWS](https://github.com/mathworks-ref-arch/license-manager-for-matlab-on-aws) or an existing license manager can be used.
-
-* MATLAB® and Parallel Computing Toolbox™ on your desktop. These must match the chosen MATLAB version of this reference architecture.
-
-* An Amazon Web Services™ (AWS) account with required permissions. To see what is required look at the [example policy](matlab-parallel-server-on-aws-iam-policy.json). For more information about the services used see [Learn About Cluster Architecture](#learn-about-cluster-architecture). To learn more about IAM roles, see [Getting Started with IAM](https://docs.aws.amazon.com/IAM/latest/UserGuide/getting-started.html) and [Security Best Practices in IAM](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html). 
-
-* An SSH Key Pair for your AWS account in your chosen region. Create an SSH key pair if you do not already have one. For instructions [see the AWS documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html).
+* A MATLAB&reg; Parallel Server&trade; license. For more information on how to configure your license for cloud use, see [Configure MATLAB Parallel Server Licensing for Cloud Platforms](https://mathworks.com/help/matlab-parallel-server/configure-matlab-parallel-server-licensing-for-cloud-platforms.html). You can use either of:
+    * A MATLAB Parallel Server license configured to use online licensing for MATLAB.
+    * A network license manager for MATLAB hosting sufficient MATLAB Parallel Server licenses for your cluster. MathWorks&reg; provides a reference architecture to deploy a suitable [Network License Manager for MATLAB on Azure](https://github.com/mathworks-ref-arch/license-manager-for-matlab-on-azure) or you can use an existing license manager.
+* MATLAB&reg; and Parallel Computing Toolbox&trade; on your desktop.
+* An Amazon Web Services&trade; (AWS) account with required permissions. For more information about the services used see [Learn About Cluster Architecture](#learn-about-cluster-architecture).
+* A Key Pair for your AWS account in your chosen region. Create an SSH key pair if you do not already have one. For instructions [see the AWS documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html).
 
 # Costs
 You are responsible for the cost of the AWS services used when you create cloud resources using this guide. Resource settings, such as instance type, will affect the cost of deployment. For cost estimates, see the pricing pages for each AWS service you will be using. Prices are subject to change.
 
 # Introduction
-The following guide will help you automate the process of launching MATLAB Parallel Server and MATLAB Job Scheduler, running on Linux virtual machines, on Amazon EC2 resources with your Amazon Web Services (AWS) account. For information about the architecture of this solution, see [Learn About Cluster Architecture](#learn-about-cluster-architecture).
-
-Use this reference architecture to control every aspect of your cloud resources. Alternatively, for an easier onramp, you can use [MathWorks Cloud Center](https://www.mathworks.com/help/cloudcenter/index.html) to manage the platform for you. Cloud Center is simpler, but not customisable.
+The following guide will help you automate the process of launching MATLAB Parallel Server and MATLAB Job Scheduler, running on virtual machines, on Amazon EC2 resources with your Amazon Web Services (AWS) account. For information about the architecture of this solution, see [Learn About Cluster Architecture](#learn-about-cluster-architecture).
+Use this reference architecture to control every aspect of your cloud resources. Alternatively, for a simpler but less customizable method of launching a MATLAB Parallel Server cluster in AWS, try [MathWorks Cloud Center](https://mathworks.com/help/cloudcenter/mathworks-cloud-center.html).
 
 This reference architecture has been reviewed and qualified by AWS.
 
@@ -32,6 +28,7 @@ To view instructions for deploying the MATLAB Parallel Server reference architec
 
 | Linux | Windows |
 | ----- | ------- |
+| [R2022b](releases/R2022b/README.md) | [R2022b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2022b/README.md) |
 | [R2022a](releases/R2022a/README.md) | [R2022a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2022a/README.md) |
 | [R2021b](releases/R2021b/README.md) | [R2021b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2021b/README.md) |
 | [R2021a](releases/R2021a/README.md) |  |
@@ -58,12 +55,12 @@ The MATLAB Job Scheduler and the resources required by it are created using [AWS
 * Internal Security Group Traffic Rule (AWS::EC2::SecurityGroupIngress): Opens access to network traffic between all cluster nodes internally.
 
 ### Instances
-* Headnode instance (AWS::EC2::Instance): An EC2 instance for the cluster headnode. The MATLAB snapshot is mounted at /mnt/matlab and the job database is stored either locally on the root volume, or optionally, a separate EBS volume can be used which is mounted at /mnt/database. Communication between clients and the headnode is secured using SSL.
+* Headnode instance (AWS::EC2::Instance): An EC2 instance for the cluster headnode. The job database is stored either locally on the root volume, or optionally, a separate EBS volume can be used. Communication between clients and the headnode is secured using SSL.
   * Database Volume (optional) (AWS::EC2::Volume): A separate EBS volume to store the job database. This is optional, and if not chosen the root volume will be used for the job database.
-  * Database Mount Point (optional) (AWS::EC2::VolumeAttachment): The mount point for the database volume, specified as /dev/sdh (which may be converted to /dev/xvdh on the instance depending on the OS).
+  * Database Mount Point (optional) (AWS::EC2::VolumeAttachment): The mount point for the database volume.
 * IAM Role for Cluster Instances (AWS::IAM::Role): A role allowing access to Amazon S3 from services running in EC2.
 * Instance Profile for cluster instances (AWS::IAM::InstanceProfile): A profile for the cluster instances that associates them with the IAM role above.
-* Worker Auto Scaling Group (AWS::AutoScaling::AutoScalingGroup): A scaling group for worker instances to be launched into. The scaling features are not currently used. From the R2021b release, you can also enable scale-in protection for your cluster. For more information see, [Use Scale-in Protection](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws/blob/master/releases/R2021b/README.md#use-scale-in-protection).
+* Worker Auto Scaling Group (AWS::AutoScaling::AutoScalingGroup): A scaling group for worker instances to be launched into.
 * Worker Launch Configuration (AWS::AutoScaling::LaunchConfiguration): A launch configuration for one or more worker nodes which each run one or more worker MATLAB processes. Communication between clients and workers is secured using SSL.
 
 ### S3 bucket
@@ -80,7 +77,7 @@ No programming or cloud experience required.
 
 ### How long does this process take?
 
-If you already have an AWS account set up and ready to use, you can start a MATLAB Parallel Server Reference Architecture cluster in less than 15 minutes. Time varies depending on the size of your cluster.
+If you already have an AWS account set up and ready to use, you can start a MATLAB Parallel Server Reference Architecture cluster in less than 15 minutes. Startup time will vary depending on the size of your cluster.
 
 ### How do I manage limits? 
 
