@@ -28,6 +28,7 @@ To view instructions for deploying the MATLAB Parallel Server reference architec
 
 | Linux | Windows |
 | ----- | ------- |
+| [R2023a](releases/R2023a/README.md) | [R2023a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2023a/README.md) |
 | [R2022b](releases/R2022b/README.md) | [R2022b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2022b/README.md) |
 | [R2022a](releases/R2022a/README.md) | [R2022a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2022a/README.md) |
 | [R2021b](releases/R2021b/README.md) | [R2021b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2021b/README.md) |
@@ -55,13 +56,11 @@ The MATLAB Job Scheduler and the resources required by it are created using [AWS
 * Internal Security Group Traffic Rule (AWS::EC2::SecurityGroupIngress): Opens access to network traffic between all cluster nodes internally.
 
 ### Instances
-* Headnode instance (AWS::EC2::Instance): An EC2 instance for the cluster headnode. The job database is stored either locally on the root volume, or optionally, a separate EBS volume can be used. Communication between clients and the headnode is secured using SSL.
-  * Database Volume (optional) (AWS::EC2::Volume): A separate EBS volume to store the job database. This is optional, and if not chosen the root volume will be used for the job database.
-  * Database Mount Point (optional) (AWS::EC2::VolumeAttachment): The mount point for the database volume.
+* Headnode instance (AWS::EC2::Instance): An EC2 instance for the cluster headnode. The job database is stored on an EBS volume attached to this instance. Communication between clients and the headnode is secured using SSL.
 * IAM Role for Cluster Instances (AWS::IAM::Role): A role allowing access to Amazon S3 from services running in EC2.
 * Instance Profile for cluster instances (AWS::IAM::InstanceProfile): A profile for the cluster instances that associates them with the IAM role above.
 * Worker Auto Scaling Group (AWS::AutoScaling::AutoScalingGroup): A scaling group for worker instances to be launched into.
-* Worker Launch Configuration (AWS::AutoScaling::LaunchConfiguration): A launch configuration for one or more worker nodes which each run one or more worker MATLAB processes. Communication between clients and workers is secured using SSL.
+* Worker Launch Configuration (AWS::EC2::LaunchTemplate): A launch template for one or more worker nodes which each run one or more worker MATLAB processes. Communication between clients and workers is secured using SSL.
 
 ### S3 bucket
 * Cluster S3 Bucket (AWS::S3::Bucket): An S3 bucket to facilitate sharing the shared secret required for workers to register and establish a secure connection with the job scheduler between the cluster nodes. The shared secret is encrypted in the bucket using server-side encryption. The cluster profile required to connect to the cluster from the MATLAB client is also uploaded to this bucket.
