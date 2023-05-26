@@ -445,7 +445,7 @@
             ]
           }
         },
-        "Runtime": "nodejs12.x"
+        "Runtime": "nodejs16.x"
       }
     },
     "EmptyBuckets": {
