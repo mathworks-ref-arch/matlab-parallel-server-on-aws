@@ -4,11 +4,11 @@
 
 Before starting, you will need the following:
 
-* A MATLAB&reg; Parallel Server&trade; license. For more information on how to configure your license for cloud use, see [Configure MATLAB Parallel Server Licensing for Cloud Platforms](https://mathworks.com/help/matlab-parallel-server/configure-matlab-parallel-server-licensing-for-cloud-platforms.html). You can use either of:
+* A MATLAB&reg; Parallel Server&trade; license. For more information on how to configure your license for cloud use, see [Configure MATLAB Parallel Server Licensing for Cloud Platforms](https://www.mathworks.com/help/matlab-parallel-server/configure-matlab-parallel-server-licensing-for-cloud-platforms.html). You can use either of:
     * A MATLAB Parallel Server license configured to use online licensing for MATLAB.
-    * A network license manager for MATLAB hosting sufficient MATLAB Parallel Server licenses for your cluster. MathWorks&reg; provides a reference architecture to deploy a suitable [Network License Manager for MATLAB on Azure](https://github.com/mathworks-ref-arch/license-manager-for-matlab-on-azure) or you can use an existing license manager.
+    * A network license manager for MATLAB hosting sufficient MATLAB Parallel Server licenses for your cluster. MathWorks&reg; provides a reference architecture to deploy a suitable [Network License Manager for MATLAB on Amazon Web Services](https://github.com/mathworks-ref-arch/license-manager-for-matlab-on-aws) or you can use an existing license manager.
 * MATLAB&reg; and Parallel Computing Toolbox&trade; on your desktop.
-* An Amazon Web Services&trade; (AWS) account with required permissions. For more information about the services used see [Learn About Cluster Architecture](#learn-about-cluster-architecture).
+* An Amazon Web Services&reg; (AWS) account with required permissions. For more information about the services used see [Learn About Cluster Architecture](#learn-about-cluster-architecture).
 * A Key Pair for your AWS account in your chosen region. Create an SSH key pair if you do not already have one. For instructions [see the AWS documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html).
 
 # Costs
@@ -16,7 +16,7 @@ You are responsible for the cost of the AWS services used when you create cloud 
 
 # Introduction
 The following guide will help you automate the process of launching MATLAB Parallel Server and MATLAB Job Scheduler, running on virtual machines, on Amazon EC2 resources with your Amazon Web Services (AWS) account. For information about the architecture of this solution, see [Learn About Cluster Architecture](#learn-about-cluster-architecture).
-Use this reference architecture to control every aspect of your cloud resources. Alternatively, for a simpler but less customizable method of launching a MATLAB Parallel Server cluster in AWS, try [MathWorks Cloud Center](https://mathworks.com/help/cloudcenter/mathworks-cloud-center.html).
+Use this reference architecture to control every aspect of your cloud resources. Alternatively, for a simpler but less customizable method of launching a MATLAB Parallel Server cluster in AWS, try [MathWorks Cloud Center](https://www.mathworks.com/help/cloudcenter/mathworks-cloud-center.html).
 
 This reference architecture has been reviewed and qualified by AWS.
 
@@ -28,6 +28,7 @@ To view instructions for deploying the MATLAB Parallel Server reference architec
 
 | Linux | Windows |
 | ----- | ------- |
+| [R2023b](releases/R2023b/README.md) | [R2023b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2023b/README.md) |
 | [R2023a](releases/R2023a/README.md) | [R2023a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2023a/README.md) |
 | [R2022b](releases/R2022b/README.md) | [R2022b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2022b/README.md) |
 | [R2022a](releases/R2022a/README.md) | [R2022a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2022a/README.md) |
@@ -96,3 +97,9 @@ You can now deploy the AMI in your target region using the AMI that you copied.
 
 # Technical Support
 If you require assistance or have a request for additional features or capabilities, please contact [MathWorks Technical Support](https://www.mathworks.com/support/contact_us.html).
+
+----
+
+Copyright 2018-2023 The MathWorks, Inc.
+
+----
