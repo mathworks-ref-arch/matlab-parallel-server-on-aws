@@ -3,110 +3,84 @@
   "Mappings": {
     "RegionMap": {
       "us-east-1": {
-        "AMI": "ami-0ddbb805599aeeb5d"
+        "AMI": "ami-0abdde0ee7b2f9318"
       },
       "us-east-2": {
-        "AMI": "ami-0424f7c3397b95ca5"
+        "AMI": "ami-0db2ecb07dbe70ad7"
       },
       "us-west-1": {
-        "AMI": "ami-0d75553ce00da779c"
+        "AMI": "ami-032dce0c318ecff1e"
       },
       "us-west-2": {
-        "AMI": "ami-021205a0d3e6ecc09"
+        "AMI": "ami-0fb294f05d0958fd7"
       },
       "ca-central-1": {
-        "AMI": "ami-0d03bb4092c261833"
+        "AMI": "ami-063f654923dc4cb96"
       },
       "eu-central-1": {
-        "AMI": "ami-0772284782d761157"
+        "AMI": "ami-068ad4c9793b4911a"
       },
       "eu-west-1": {
-        "AMI": "ami-0ea8fa5982c375c10"
+        "AMI": "ami-027318cbf504a685a"
       },
       "eu-west-2": {
-        "AMI": "ami-0fa1020f225871a3a"
+        "AMI": "ami-05b2409c42b9826e8"
       },
       "eu-west-3": {
-        "AMI": "ami-05b6d796d220a39ac"
+        "AMI": "ami-0a1d85b99654b85f7"
       },
       "eu-north-1": {
-        "AMI": "ami-0ec0090fcea3ac6f3"
+        "AMI": "ami-0cf1e876a023c5787"
       },
       "sa-east-1": {
-        "AMI": "ami-07e2e9c0b0ff50aec"
+        "AMI": "ami-0bb12466e26f61cc9"
       },
       "me-south-1": {
-        "AMI": "ami-01c467b54171e64a4"
+        "AMI": "ami-02fa0fa18936d92e3"
       },
       "ap-east-1": {
-        "AMI": "ami-0e6dd9456ec749242"
+        "AMI": "ami-0cf42a0cab88c4b13"
       },
       "ap-south-1": {
-        "AMI": "ami-0d94eaadd38e7b0ff"
+        "AMI": "ami-0ce8bc8213fec7fa1"
       },
       "ap-northeast-1": {
-        "AMI": "ami-0ee702b7d4e902ec7"
+        "AMI": "ami-073f122cd86cbba7c"
       },
       "ap-northeast-2": {
-        "AMI": "ami-003c0719845a7f275"
+        "AMI": "ami-0168d0f800fcd611f"
       },
       "ap-southeast-1": {
-        "AMI": "ami-04ab2021712fd18f1"
+        "AMI": "ami-0a6521a5d02446d6c"
       },
       "ap-southeast-2": {
-        "AMI": "ami-0d93805ec467ab96b"
+        "AMI": "ami-0b0c23beb3a169d5b"
       }
     }
   },
   "Resources": {
-    "ClusterSecurityGroup": {
-      "Type": "AWS::EC2::SecurityGroup",
+    "MWSecurityGroup": {
+      "Type": "AWS::CloudFormation::Stack",
       "Properties": {
-        "VpcId": {
-          "Ref": "VPC"
-        },
-        "GroupDescription": "Allow remote access for MATLAB and SSH, and internal traffic",
-        "SecurityGroupIngress": [
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "27350",
-            "ToPort": "27613",
-            "CidrIp": {
-              "Ref": "ClientIPAddress"
-            }
+        "TemplateURL": "https://mathworks-reference-architectures-templates.s3.amazonaws.com/security-group/v1/0/0/security-group.yml",
+        "Parameters": {
+          "VpcId": {
+            "Ref": "VPC"
           },
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "22",
-            "ToPort": "22",
-            "CidrIp": {
-              "Ref": "ClientIPAddress"
-            }
-          }
-        ],
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": {
-              "Ref": "ClusterName"
-            }
-          }
-        ]
+          "CidrIp": {
+            "Ref": "ClientIPAddress"
+          },
+          "SSHAccess": "Yes",
+          "MJSAccess": "Yes",
+          "InternalAccess": "Yes"
+        }
       }
     },
-    "ClusterSecurityGroupInternalTrafficRule": {
-      "Type": "AWS::EC2::SecurityGroupIngress",
-      "DependsOn": "ClusterSecurityGroup",
+    "MWLogLocation": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Condition": "UseCloudWatch",
       "Properties": {
-        "GroupId": {
-          "Ref": "ClusterSecurityGroup"
-        },
-        "IpProtocol": "tcp",
-        "FromPort": "1",
-        "ToPort": "65535",
-        "SourceSecurityGroupId": {
-          "Ref": "ClusterSecurityGroup"
-        }
+        "TemplateURL": "https://mathworks-reference-architectures-templates.s3.amazonaws.com/log-location/v1/0/0/log-location.yml"
       }
     },
     "HeadnodeInstanceRole": {
@@ -139,17 +113,16 @@
                   ],
                   "Resource": [
                     {
-                      "Fn::Join": [
-                        "",
-                        [
-                          {
+                      "Fn::Sub": [
+                        "${BucketArn}/*",
+                        {
+                          "BucketArn": {
                             "Fn::GetAtt": [
                               "S3Bucket",
                               "Arn"
                             ]
-                          },
-                          "/*"
-                        ]
+                          }
+                        }
                       ]
                     },
                     {
@@ -164,66 +137,48 @@
             }
           },
           {
-            "PolicyName": "cloudwatch-access-policy",
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "logs:CreateLogStream",
-                    "logs:DescribeLogStreams",
-                    "logs:PutLogEvents"
-                  ],
-                  "Resource": {
-                    "Fn::Join": [
-                      ":",
-                      [
-                        "arn:aws:logs",
-                        {
-                          "Ref": "AWS::Region"
-                        },
-                        {
-                          "Ref": "AWS::AccountId"
-                        },
-                        "log-group",
-                        {
-                          "Fn::Join": [
-                            "-",
-                            [
-                              {
-                                "Ref": "AWS::StackName"
-                              },
-                              {
-                                "Fn::Select": [
-                                  "2",
-                                  {
-                                    "Fn::Split": [
-                                      "/",
-                                      {
-                                        "Ref": "AWS::StackId"
-                                      }
-                                    ]
-                                  }
-                                ]
-                              }
-                            ]
-                          ]
-                        },
-                        "*"
-                      ]
-                    ]
-                  }
-                },
-                {
-                  "Action": [
-                    "cloudwatch:PutMetricData"
-                  ],
-                  "Resource": "*",
-                  "Effect": "Allow"
+            "Fn::If": [
+              "UseCloudWatch",
+              {
+                "PolicyName": "cloudwatch-access-policy",
+                "PolicyDocument": {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "logs:CreateLogStream",
+                        "logs:DescribeLogStreams",
+                        "logs:PutLogEvents"
+                      ],
+                      "Resource": {
+                        "Fn::Sub": [
+                          "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${name}:*",
+                          {
+                            "name": {
+                              "Fn::GetAtt": [
+                                "MWLogLocation",
+                                "Outputs.LogGroupName"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "Action": [
+                        "cloudwatch:PutMetricData"
+                      ],
+                      "Resource": "*",
+                      "Effect": "Allow"
+                    }
+                  ]
                 }
-              ]
-            }
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
           },
           {
             "PolicyName": "ec2-access-policy",
@@ -329,17 +284,16 @@
                   ],
                   "Resource": [
                     {
-                      "Fn::Join": [
-                        "",
-                        [
-                          {
+                      "Fn::Sub": [
+                        "${BucketArn}/*",
+                        {
+                          "BucketArn": {
                             "Fn::GetAtt": [
                               "S3Bucket",
                               "Arn"
                             ]
-                          },
-                          "/*"
-                        ]
+                          }
+                        }
                       ]
                     },
                     {
@@ -354,66 +308,46 @@
             }
           },
           {
-            "PolicyName": "cloudwatch-access-policy",
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "logs:CreateLogStream",
-                    "logs:DescribeLogStreams",
-                    "logs:PutLogEvents"
-                  ],
-                  "Resource": {
-                    "Fn::Join": [
-                      ":",
-                      [
-                        "arn:aws:logs",
-                        {
-                          "Ref": "AWS::Region"
-                        },
-                        {
-                          "Ref": "AWS::AccountId"
-                        },
-                        "log-group",
-                        {
-                          "Fn::Join": [
-                            "-",
-                            [
-                              {
-                                "Ref": "AWS::StackName"
-                              },
-                              {
-                                "Fn::Select": [
-                                  "2",
-                                  {
-                                    "Fn::Split": [
-                                      "/",
-                                      {
-                                        "Ref": "AWS::StackId"
-                                      }
-                                    ]
-                                  }
-                                ]
-                              }
-                            ]
-                          ]
-                        },
-                        "*"
-                      ]
-                    ]
-                  }
-                },
-                {
-                  "Action": [
-                    "cloudwatch:PutMetricData"
-                  ],
-                  "Resource": "*",
-                  "Effect": "Allow"
+            "Fn::If": [
+              "UseCloudWatch",
+              {
+                "PolicyName": "cloudwatch-access-policy",
+                "PolicyDocument": {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "logs:CreateLogStream",
+                        "logs:DescribeLogStreams",
+                        "logs:PutLogEvents"
+                      ],
+                      "Resource": {
+                        "Fn::Sub": [
+                          "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${name}:*",
+                          {
+                            "name": {
+                              "Fn::GetAtt": [
+                                "MWLogLocation",
+                                "Outputs.LogGroupName"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "Action": "cloudwatch:PutMetricData",
+                      "Resource": "*",
+                      "Effect": "Allow"
+                    }
+                  ]
                 }
-              ]
-            }
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
           },
           {
             "PolicyName": "ec2-access-policy",
@@ -458,7 +392,10 @@
         },
         "SecurityGroupIds": [
           {
-            "Ref": "ClusterSecurityGroup"
+            "Fn::GetAtt": [
+              "MWSecurityGroup",
+              "Outputs.SecurityGroupId"
+            ]
           },
           {
             "Fn::If": [
@@ -515,15 +452,7 @@
           {
             "Key": "Name",
             "Value": {
-              "Fn::Join": [
-                "",
-                [
-                  {
-                    "Ref": "ClusterName"
-                  },
-                  "-Headnode"
-                ]
-              ]
+              "Fn::Sub": "${ClusterName}-Headnode"
             }
           },
           {
@@ -573,26 +502,9 @@
                         "Fn::If": [
                           "UseCloudWatch",
                           {
-                            "Fn::Join": [
-                              "-",
-                              [
-                                {
-                                  "Ref": "AWS::StackName"
-                                },
-                                {
-                                  "Fn::Select": [
-                                    "2",
-                                    {
-                                      "Fn::Split": [
-                                        "/",
-                                        {
-                                          "Ref": "AWS::StackId"
-                                        }
-                                      ]
-                                    }
-                                  ]
-                                }
-                              ]
+                            "Fn::GetAtt": [
+                              "MWLogLocation",
+                              "Outputs.LogGroupName"
                             ]
                           },
                           ""
@@ -617,6 +529,12 @@
                   "Fn::Sub": "export JOB_MANAGER_NAME='${ClusterName}'"
                 },
                 {
+                  "Fn::Sub": "export SECURITY_LEVEL=${MJSSecurityLevel}"
+                },
+                {
+                  "Fn::Sub": "export SCHEDULING_ALGORITHM=${MJSSchedulingAlgorithm}"
+                },
+                {
                   "Fn::Sub": "export S3_BUCKET=s3://${S3Bucket}"
                 },
                 {
@@ -639,7 +557,10 @@
         "LaunchTemplateData": {
           "SecurityGroupIds": [
             {
-              "Ref": "ClusterSecurityGroup"
+              "Fn::GetAtt": [
+                "MWSecurityGroup",
+                "Outputs.SecurityGroupId"
+              ]
             },
             {
               "Fn::If": [
@@ -708,26 +629,9 @@
                           "Fn::If": [
                             "UseCloudWatch",
                             {
-                              "Fn::Join": [
-                                "-",
-                                [
-                                  {
-                                    "Ref": "AWS::StackName"
-                                  },
-                                  {
-                                    "Fn::Select": [
-                                      "2",
-                                      {
-                                        "Fn::Split": [
-                                          "/",
-                                          {
-                                            "Ref": "AWS::StackId"
-                                          }
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                ]
+                              "Fn::GetAtt": [
+                                "MWLogLocation",
+                                "Outputs.LogGroupName"
                               ]
                             },
                             ""
@@ -744,6 +648,12 @@
                   },
                   {
                     "Fn::Sub": "export JOB_MANAGER_NAME='${ClusterName}'"
+                  },
+                  {
+                    "Fn::Sub": "export SECURITY_LEVEL=${MJSSecurityLevel}"
+                  },
+                  {
+                    "Fn::Sub": "export SCHEDULING_ALGORITHM=${MJSSchedulingAlgorithm}"
                   },
                   {
                     "Fn::Sub": "export S3_BUCKET=s3://${S3Bucket}"
@@ -890,17 +800,16 @@
                     "s3:DeleteObject"
                   ],
                   "Resource": {
-                    "Fn::Join": [
-                      "/",
-                      [
-                        {
+                    "Fn::Sub": [
+                      "${BucketArn}/*",
+                      {
+                        "BucketArn": {
                           "Fn::GetAtt": [
                             "S3Bucket",
                             "Arn"
                           ]
-                        },
-                        "*"
-                      ]
+                        }
+                      }
                     ]
                   }
                 }
@@ -1033,35 +942,6 @@
         }
       }
     },
-    "MJSLogGroup": {
-      "Type": "AWS::Logs::LogGroup",
-      "Condition": "UseCloudWatch",
-      "Properties": {
-        "LogGroupName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              {
-                "Fn::Select": [
-                  "2",
-                  {
-                    "Fn::Split": [
-                      "/",
-                      {
-                        "Ref": "AWS::StackId"
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          ]
-        }
-      }
-    },
     "HeadNodeASGPolicy": {
       "DependsOn": [
         "ClusterScalingGroup",
@@ -1089,20 +969,7 @@
                 "autoscaling:SetInstanceHealth"
               ],
               "Resource": {
-                "Fn::Sub": [
-                  "arn:aws:autoscaling:${region}:${ID}:autoScalingGroup:*:autoScalingGroupName/${name}",
-                  {
-                    "region": {
-                      "Ref": "AWS::Region"
-                    },
-                    "ID": {
-                      "Ref": "AWS::AccountId"
-                    },
-                    "name": {
-                      "Ref": "ClusterScalingGroup"
-                    }
-                  }
-                ]
+                "Fn::Sub": "arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${ClusterScalingGroup}"
               }
             },
             {
@@ -1212,20 +1079,7 @@
                     "autoscaling:SetInstanceProtection"
                   ],
                   "Resource": {
-                    "Fn::Sub": [
-                      "arn:aws:autoscaling:${region}:${ID}:autoScalingGroup:*:autoScalingGroupName/${name}",
-                      {
-                        "region": {
-                          "Ref": "AWS::Region"
-                        },
-                        "ID": {
-                          "Ref": "AWS::AccountId"
-                        },
-                        "name": {
-                          "Ref": "ClusterScalingGroup"
-                        }
-                      }
-                    ]
+                    "Fn::Sub": "arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${ClusterScalingGroup}"
                   }
                 },
                 {
@@ -1277,7 +1131,7 @@
       "ConstraintDescription": "Must only include alphanumeric characters and spaces and cannot start with a space or number."
     },
     "HeadnodeInstanceType": {
-      "Description": "AWS instance type to use for the head node, which will run the job manager. No workers will be started on this node, so this can be a smaller instance type than the worker nodes. See https://aws.amazon.com/ec2/instance-types for a list of instance types. Must be available in the Availability Zone of the first subnet in the configured list.",
+      "Description": "AWS instance type to use for the head node, which will run the job manager. No workers will be started on this node, so this can be a smaller instance type than the worker nodes. By default, the heap memory for the job manager is set between 1024 MiB and a maximum of half of the instance memory, depending on the total number of MATLAB workers. See https://aws.amazon.com/ec2/instance-types for a list of instance types. Must be available in the Availability Zone of the first subnet in the configured list.",
       "Default": "t3.medium",
       "Type": "String",
       "MinLength": 1,
@@ -1296,7 +1150,7 @@
       "ConstraintDescription": "Size must be at least 32 GiB."
     },
     "WorkerInstanceType": {
-      "Description": "AWS instance type to use for the workers. See https://aws.amazon.com/ec2/instance-types for a list of instance types.",
+      "Description": "AWS instance type to use for the workers. By default, the heap memory for all worker process is set between 1024 MiB and a maximum of a quarter of the instance memory, depending on the number of MATLAB workers on the instance. See https://aws.amazon.com/ec2/instance-types for a list of instance types.",
       "Default": "c5.xlarge",
       "Type": "String",
       "MinLength": 1,
@@ -1347,6 +1201,16 @@
       "Type": "String",
       "Default": ""
     },
+    "MJSSecurityLevel": {
+      "Description": "Security level for the cluster. Level 0: Any user can access any jobs and tasks. Level 1: Accessing other users' jobs and tasks issues a warning. However, all users can still perform all actions. Level 2: Users must enter a password to access their jobs and tasks. The job owner can grant access to other users.",
+      "Type": "String",
+      "AllowedValues": [
+        "0",
+        "1",
+        "2"
+      ],
+      "Default": "0"
+    },
     "EnableAutoscaling": {
       "Description": "Flag indicating whether instance autoscaling is enabled. For more information about autoscaling, refer to the Use Autoscaling section in the deployment README.",
       "Type": "String",
@@ -1355,6 +1219,15 @@
         "No"
       ],
       "Default": "No"
+    },
+    "MJSSchedulingAlgorithm": {
+      "Description": "Scheduling algorithm for the job manager. 'standard' spreads communicating jobs across as few worker machines as possible to reduce communication overheads and fills in unused spaces on worker machines with independent jobs. Suitable for good behaviour for a wide range of uses including autoscaling. 'loadBalancing' distributes load evenly across the cluster to give as many resources as possible to running jobs and tasks when the cluster is underutilized.",
+      "Type": "String",
+      "AllowedValues": [
+        "standard",
+        "loadBalancing"
+      ],
+      "Default": "standard"
     },
     "OptionalUserCommand": {
       "Description": "Provide an optional inline shell command to run on machine launch. For example, to set an environment variable CLOUD=AWS, use this command excluding the angle brackets: <echo -e \"export CLOUD=AWS\" | tee -a /etc/profile.d/setenvvar.sh && source /etc/profile>. To run an external script, use this command excluding the angle brackets: <wget -O /tmp/my-script.sh \"https://somedomain.com/script.sh\" && bash /tmp/my-script.sh>. Find the logs at '/var/log/mathworks/startup.log'.",
@@ -1450,30 +1323,13 @@
     },
     "ProfileName": {
       "Value": {
-        "Fn::Join": [
-          "",
-          [
-            {
-              "Ref": "ClusterName"
-            },
-            ".mlsettings"
-          ]
-        ]
+        "Fn::Sub": "${ClusterName}.mlsettings"
       },
       "Description": "The name of the profile"
     },
     "BucketURL": {
       "Value": {
-        "Fn::Join": [
-          "",
-          [
-            "https://s3.console.aws.amazon.com/s3/buckets/",
-            {
-              "Ref": "S3Bucket"
-            },
-            "/"
-          ]
-        ]
+        "Fn::Sub": "https://s3.console.aws.amazon.com/s3/buckets/${S3Bucket}/"
       },
       "Description": "The URL of the S3 bucket in the AWS console that contains the profile"
     },
@@ -1481,38 +1337,16 @@
       "Condition": "UseCloudWatch",
       "Description": "Cloudwatch log group containing log data for the MATLAB Parallel Server cluster",
       "Value": {
-        "Fn::Join": [
-          "",
-          [
-            "https://console.aws.amazon.com/cloudwatch/home?region=",
-            {
-              "Ref": "AWS::Region"
-            },
-            "#logsV2:log-groups/log-group/",
-            {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "AWS::StackName"
-                  },
-                  {
-                    "Fn::Select": [
-                      "2",
-                      {
-                        "Fn::Split": [
-                          "/",
-                          {
-                            "Ref": "AWS::StackId"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
+        "Fn::Sub": [
+          "https://console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#logsV2:log-groups/log-group/${LogGroupName}",
+          {
+            "LogGroupName": {
+              "Fn::GetAtt": [
+                "MWLogLocation",
+                "Outputs.LogGroupName"
               ]
             }
-          ]
+          }
         ]
       }
     },
@@ -1520,38 +1354,16 @@
       "Condition": "UseCloudWatch",
       "Description": "Cloudwatch metrics containing metric data for the MATLAB Parallel Server cluster",
       "Value": {
-        "Fn::Join": [
-          "",
-          [
-            "https://console.aws.amazon.com/cloudwatch/home?region=",
-            {
-              "Ref": "AWS::Region"
-            },
-            "#metricsV2:graph=~();namespace=~'",
-            {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "AWS::StackName"
-                  },
-                  {
-                    "Fn::Select": [
-                      "2",
-                      {
-                        "Fn::Split": [
-                          "/",
-                          {
-                            "Ref": "AWS::StackId"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
+        "Fn::Sub": [
+          "https://console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#metricsV2:graph=~();namespace=~'${LogGroupName}",
+          {
+            "LogGroupName": {
+              "Fn::GetAtt": [
+                "MWLogLocation",
+                "Outputs.LogGroupName"
               ]
             }
-          ]
+          }
         ]
       }
     },
@@ -1618,10 +1430,12 @@
         },
         {
           "Label": {
-            "default": "Instance Autoscaling"
+            "default": "Additional MJS Configuration"
           },
           "Parameters": [
-            "EnableAutoscaling"
+            "MJSSecurityLevel",
+            "EnableAutoscaling",
+            "MJSSchedulingAlgorithm"
           ]
         },
         {
@@ -1689,6 +1503,12 @@
         },
         "EnableAutoscaling": {
           "default": "Enable instance autoscaling"
+        },
+        "MJSSchedulingAlgorithm": {
+          "default": "Scheduling algorithm"
+        },
+        "MJSSecurityLevel": {
+          "default": "Security level"
         },
         "OptionalUserCommand": {
           "default": "Optional user inline command"

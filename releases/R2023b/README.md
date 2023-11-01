@@ -40,10 +40,10 @@ After you click the Launch Stack button above, the “Create stack” page will 
 | **CIDR IP address range of client** | IP address range that will be allowed to connect to this cluster from outside of the VPC. This field should be formatted as \<ip_address>/\<mask>. E.g. 10.0.0.1/32. This is the public IP address which can be found by searching for 'what is my ip address' on the web. The mask determines the number of IP addresses to include. A mask of 32 is a single IP address. This calculator can be used to build a specific range: https://www.ipaddressguide.com/cidr. You may need to contact your IT administrator to determine which address is appropriate. |
 | **Name of SSH key** | Name of an existing EC2 KeyPair to allow SSH access to all the instances. See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html for details on creating these. |
 | **Cluster name** | Name to use for this cluster. This name will be shown in MATLAB as the cluster profile name. |
-| **Instance type for the head node** | AWS instance type to use for the head node, which will run the job manager. No workers will be started on this node, so this can be a smaller instance type than the worker nodes. See https://aws.amazon.com/ec2/instance-types for a list of instance types. Must be available in the Availability Zone of the first subnet in the configured list. |
+| **Instance type for the head node** | AWS instance type to use for the head node, which will run the job manager. No workers will be started on this node, so this can be a smaller instance type than the worker nodes. By default, the heap memory for the job manager is set between 1024 MiB and a maximum of half of the instance memory, depending on the total number of MATLAB workers. See https://aws.amazon.com/ec2/instance-types for a list of instance types. Must be available in the Availability Zone of the first subnet in the configured list. |
 | **Custom AMI ID (Optional)** | ID of a custom Amazon Machine Image (AMI) in the target region (optional). Ensure that the custom machine image is compatible with the provided CloudFormation template. The ID should start with 'ami-'. |
 | **Storage size for the MJS database** | Size in GiB of the EBS volume storing the MJS database. All job and task information, including input and output data will be stored on this volume and should therefore have enough capacity to store the expected amount of data. |
-| **Instance type for the worker nodes** | AWS instance type to use for the workers. See https://aws.amazon.com/ec2/instance-types for a list of instance types. |
+| **Instance type for the worker nodes** | AWS instance type to use for the workers. By default, the heap memory for all worker process is set between 1024 MiB and a maximum of a quarter of the instance memory, depending on the number of MATLAB workers on the instance. See https://aws.amazon.com/ec2/instance-types for a list of instance types. |
 | **Number of worker nodes** | Number of AWS instances to start for the workers to run on. |
 | **Minimum number of worker nodes** | Minimum number of AWS instances running at all times. |
 | **Maximum number of worker nodes** | Maximum number of AWS instances running at all times. |
@@ -51,16 +51,20 @@ After you click the Launch Stack button above, the “Create stack” page will 
 | **License Manager for MATLAB connection string** | Optional License Manager for MATLAB, specified as a string in the form \<port>@\<hostname>. If not specified, use online licensing. If specified, the network license manager (NLM) must be accessible from the specified VPC and subnets. To use the private hostname of the NLM host instead of the public hostname, specify the security group ID of the NLM host in the AdditionalSecurityGroup parameter. For more information, see https://github.com/mathworks-ref-arch/license-manager-for-matlab-on-aws. |
 | **Configure cloudwatch logging for the MATLAB Parallel Server instances** | Flag indicating whether cloudwatch logging for the MATLAB Parallel Server instances is enabled. |
 | **Additional security group to place instances in** | ID of an additional (optional) Security Group for the instances to be placed in. Often the License Manager for MATLAB's Security Group. |
+| **Security level** | Security level for the cluster. Level 0: Any user can access any jobs and tasks. Level 1: Accessing other users' jobs and tasks issues a warning. However, all users can still perform all actions. Level 2: Users must enter a password to access their jobs and tasks. The job owner can grant access to other users. |
 | **Enable instance autoscaling** | Flag indicating whether instance autoscaling is enabled. For more information about autoscaling, refer to the Use Autoscaling section in the deployment README. |
+| **Scheduling algorithm** | Scheduling algorithm for the job manager. 'standard' spreads communicating jobs across as few worker machines as possible to reduce communication overheads and fills in unused spaces on worker machines with independent jobs. Suitable for good behaviour for a wide range of uses including autoscaling. 'loadBalancing' distributes load evenly across the cluster to give as many resources as possible to running jobs and tasks when the cluster is underutilized. |
 | **Optional user inline command** | Provide an optional inline shell command to run on machine launch. For example, to set an environment variable CLOUD=AWS, use this command excluding the angle brackets: \<echo -e "export CLOUD=AWS" \| tee -a /etc/profile.d/setenvvar.sh && source /etc/profile>. To run an external script, use this command excluding the angle brackets: \<wget -O /tmp/my-script.sh "https://somedomain.com/script.sh" && bash /tmp/my-script.sh>. Find the logs at '/var/log/mathworks/startup.log'. |
 
 
 3. Tick the box to accept that the template uses IAM roles. These roles allow:
-  * the instances to transfer the shared secret information between the nodes, via the S3 bucket, to establish SSL encrypted communications
-  * the instances to write the cluster profile to the S3 bucket for secure access to the cluster from the client MATLAB&reg;
-  * a custom lambda function to delete the contents of this S3 bucket when the stack is deleted
+    * the instances to transfer the shared secret information between the nodes, via the S3 bucket, to establish SSL encrypted communications
+    * the instances to write the cluster profile to the S3 bucket for secure access to the cluster from the client MATLAB&reg;
+    * a custom lambda function to delete the contents of this S3 bucket when the stack is deleted
 
-4. Click the **Create** button.
+4. Tick the box to accept that the template will autoexpand [nested stacks](#nested-stacks).
+
+5. Click the **Create** button.
 
 When you click Create, the cluster is created using AWS CloudFormation templates.
 
@@ -122,6 +126,21 @@ When autoscaling is disabled, the AWS Auto Scaling group launches `Number of wor
 When autoscaling is enabled, the [desired capacity](https://docs.aws.amazon.com/autoscaling/ec2/userguide/asg-capacity-limits.html) of the AWS Auto Scaling group is regulated by the number of workers needed by the cluster. The number of Amazon EC2 instances fluctuates between the `Minimum` and `Maximum number of worker nodes`. To change these limits after you create the stack, use the AWS Management Console. To change the amount of time idle nodes are preserved, adjust the value of the tag `mwWorkerIdleTimeoutMinutes`.
 
 To disable autoscaling in a deployed stack, redeploy the stack with autoscaling disabled.
+
+## MATLAB Job Scheduler Configuration
+
+By default, MATLAB Job Scheduler (MJS) is configured to manage a wide range of cluster uses.
+
+To change the MJS configuration for advanced use cases, replace the default `mjs_def` with your own file using the template parameter `OptionalUserCommand`. To learn more about the MJS startup parameters and to edit them, see [Define MATLAB Job Scheduler Startup Parameters](https://www.mathworks.com/help/matlab-parallel-server/define-startup-parameters.html).
+For example, to retrieve and use your edited `mjs_def` from a storage service (e.g. Amazon S3&trade;), set the `OptionalUserCommand` to the following:
+```
+wget --output-document=${MJS_DEF_FILE} https://<your_bucket>.s3.amazonaws.com/mjs_def.sh
+```
+
+
+## Nested Stacks
+
+This CloudFormation template uses nested stacks to reference templates used by multiple reference architectures. For details, see the [MathWorks Infrastructure as Code Building Blocks](https://github.com/mathworks-ref-arch/iac-building-blocks) repository.
 
 ## Troubleshooting
 
