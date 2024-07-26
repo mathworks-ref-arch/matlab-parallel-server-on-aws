@@ -1,8 +1,8 @@
 # MATLAB Parallel Server  on Amazon Web Services (Linux VM)
 
-## Step 1. Launch the Template
+## Step 1. Deploy the Template
 
-Click the **Launch Stack** button for your desired region below to deploy the cloud resources on AWS&reg;. This will open the AWS console in your web browser.
+Click the **Launch Stack** button for your desired region below to deploy the cloud resources on Amazon&reg; Web Services (AWS&reg;). This opens the AWS console in your web browser.
 
 | Region | Launch Link |
 | --------------- | ----------- |
@@ -27,23 +27,24 @@ Click the **Launch Stack** button for your desired region below to deploy the cl
 
 
 ## Step 2. Configure the Cloud Resources
-After you click the Launch Stack button above, the “Create stack” page will open in your browser where you can configure the parameters. It is easier to complete the steps if you position these instructions and the AWS console window side by side.
+Clicking the **Launch Stack** button above opens the “Quick create stack” page in your browser. You can configure the parameters on this page. It is easier to complete the steps if you position these instructions and the AWS console window side by side.
 
-1. Specify a stack name. This will be shown in the AWS CloudFormation console and must be unique within the AWS account.
+1. Specify a stack name in the AWS CloudFormation console. The name must be unique within your AWS account.
 
 2. Specify and check the defaults for these resource parameters:
 
 | Parameter label | Description |
 | --------------- | ----------- |
 | **VPC to deploy this stack to** | ID of an existing VPC in which to deploy this stack. |
-| **Subnets for the head node and worker nodes** | List of existing subnets IDs for the head node and workers. |
-| **CIDR IP address range of client** | IP address range that will be allowed to connect to this cluster from outside of the VPC. This field should be formatted as \<ip_address>/\<mask>. E.g. 10.0.0.1/32. This is the public IP address which can be found by searching for 'what is my ip address' on the web. The mask determines the number of IP addresses to include. A mask of 32 is a single IP address. This calculator can be used to build a specific range: https://www.ipaddressguide.com/cidr. You may need to contact your IT administrator to determine which address is appropriate. |
+| **Subnets for the head node and worker nodes** | List of existing public subnets IDs for the head node and workers. |
+| **CIDR IP address range of client** | IP address range that you allow to connect to this cluster from outside of the VPC. This field should be formatted as \<ip_address>/\<mask>. E.g. 10.0.0.1/32. This is the public IP address which can be found by searching for 'what is my ip address' on the web. The mask determines the number of IP addresses to include. A mask of 32 is a single IP address. This calculator can be used to build a specific range: https://www.ipaddressguide.com/cidr. You may need to contact your IT administrator to determine which address is appropriate. |
 | **Name of SSH key** | Name of an existing EC2 KeyPair to allow SSH access to all the instances. See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html for details on creating these. |
-| **Cluster name** | Name to use for this cluster. This name will be shown in MATLAB as the cluster profile name. |
-| **Instance type for the head node** | AWS instance type to use for the head node, which will run the job manager. No workers will be started on this node, so this can be a smaller instance type than the worker nodes. By default, the heap memory for the job manager is set between 1024 MiB and a maximum of half of the instance memory, depending on the total number of MATLAB workers. See https://aws.amazon.com/ec2/instance-types for a list of instance types. Must be available in the Availability Zone of the first subnet in the configured list. |
+| **Cluster name** | Name to use for this cluster. This name is shown in MATLAB as the cluster profile name. |
+| **Instance type for the head node** | AWS instance type to use for the head node, which runs the job manager. No workers start on this node, so this can be a smaller instance type than the worker nodes. By default, the heap memory for the job manager is set between 1024 MiB and a maximum of half of the instance memory, depending on the total number of MATLAB workers. See https://aws.amazon.com/ec2/instance-types for a list of instance types. Must be available in the Availability Zone of the first subnet in the configured list. |
 | **Custom AMI ID (Optional)** | ID of a custom Amazon Machine Image (AMI) in the target region (optional). Ensure that the custom machine image is compatible with the provided CloudFormation template. The ID should start with 'ami-'. |
-| **Storage size for the MJS database** | Size in GiB of the EBS volume storing the MJS database. All job and task information, including input and output data will be stored on this volume and should therefore have enough capacity to store the expected amount of data. |
+| **Storage size for the MJS database** | Size in GiB of the EBS volume storing the MJS database. All job and task information, including input and output data, is stored on this volume and should therefore have enough capacity to store the expected amount of data. |
 | **Instance type for the worker nodes** | AWS instance type to use for the workers. By default, the heap memory for all worker process is set between 1024 MiB and a maximum of a quarter of the instance memory, depending on the number of MATLAB workers on the instance. See https://aws.amazon.com/ec2/instance-types for a list of instance types. |
+| **Use Spot Instances for worker nodes** | Option indicating whether to enable AWS Spot instances for worker nodes. For more information, refer to the FAQ section in the deployment README. |
 | **Number of worker nodes** | Number of AWS instances to start for the workers to run on. |
 | **Minimum number of worker nodes** | Minimum number of AWS instances running at all times. |
 | **Maximum number of worker nodes** | Maximum number of AWS instances running at all times. |
@@ -57,44 +58,56 @@ After you click the Launch Stack button above, the “Create stack” page will 
 | **Optional user inline command** | Provide an optional inline shell command to run on machine launch. For example, to set an environment variable CLOUD=AWS, use this command excluding the angle brackets: \<echo -e "export CLOUD=AWS" \| tee -a /etc/profile.d/setenvvar.sh && source /etc/profile>. To run an external script, use this command excluding the angle brackets: \<wget -O /tmp/my-script.sh "https://somedomain.com/script.sh" && bash /tmp/my-script.sh>. Find the logs at '/var/log/mathworks/startup.log'. |
 
 
-3. Tick the box to accept that the template uses IAM roles. These roles allow:
-    * the instances to transfer the shared secret information between the nodes, via the S3 bucket, to establish SSL encrypted communications
-    * the instances to write the cluster profile to the S3 bucket for secure access to the cluster from the client MATLAB&reg;
-    * a custom lambda function to delete the contents of this S3 bucket when the stack is deleted
+3. Tick the box to accept that the template uses Identity and Access Management (IAM) roles. These roles allow:
+    * The instances to transfer the shared secret information between the nodes, via the Amazon S3&trade; bucket, to establish SSL encrypted communications.
+    * The instances to write the cluster profile to the S3 bucket for secure access to the cluster from the client MATLAB&reg;.
+    * A custom lambda function to delete the contents of this S3 bucket when you delete the stack.
 
-4. Tick the box to accept that the template will autoexpand [nested stacks](#nested-stacks).
+4. Tick the box to accept that the template will auto expand [nested stacks](#nested-stacks).
 
 5. Click the **Create** button.
 
-When you click Create, the cluster is created using AWS CloudFormation templates.
+When you click **Create**, the cluster is created using AWS CloudFormation templates.
 
 ## Step 3: Connect to Your Cluster From MATLAB
 
-1. After clicking **Create** you will be taken to the Stack Detail page for your Stack. Wait for the Status to reach **CREATE\_COMPLETE**. This may take up to 10 minutes.
+1. After clicking **Create stack**, you are taken to the **Stack details** page for your Stack. Wait for the Status to reach **CREATE\_COMPLETE**. This may take up to 10 minutes.
 2. Select **Outputs**.
 
     ![Stack Outputs On Completion](../../img/cloudformation-stack-creation-complete.png)
 
-3. Click the link next to **BucketURL** under **Outputs**.
+3. Click the link next to **BucketURL** under **Value**.
 4. Select the profile (**ClusterName.mlsettings**) and click **Download**.
 5. Open MATLAB.
-6. In the Parallel drop-down menu in the MATLAB toolstrip select **Create and Manage Clusters...**.
+6. In the Parallel drop-down menu in the MATLAB toolstrip, select **Create and Manage Clusters**.
 7. Click **Import**.
-8. Select the downloaded profile and click open.
+8. Select the downloaded profile, and click **Open**.
 9. Click **Set as Default**.
 10. (Optional) Validate your cluster by clicking the **Validate** button.
 
-After setting the cloud cluster as default, the next time you run a parallel language command (such as `parfor`, `spmd`, `parfeval` or `batch`) MATLAB connects to the cluster. The first time you connect, you will be prompted for your MathWorks&reg; account login. The first time you run a task on a worker it will take several minutes for the worker MATLAB to start. This delay is due to initial loading of data from the EBS volumes. This is a one-time operation, and subsequent tasks begin much faster.
+After setting the cloud cluster as default, the next time you run a parallel language command (such as `parfor`, `spmd`, `parfeval` or `batch`), MATLAB connects to the cluster. The first time you connect, you are prompted for your MathWorks&reg; account login. The first time you run a task on a worker, it takes several minutes for the worker MATLAB to start. This delay is due to initial loading of data from the EBS volumes. This is a one-time operation, and subsequent tasks begin much faster.
 
-Your cluster is now ready to use. It will remain running after you close MATLAB. Delete your cluster by following the instructions below.
+Your cluster is now ready to use. 
 
-**NOTE**: Use the profile and client IP address range to control access to your cloud resources. Anyone with this file can connect to your resources from a machine within the specified IP address range and run jobs on it.
+**NOTE**: Use the profile and client IP address range to control access to your cloud resources. Anyone with the profile file can connect to your resources from a machine within the specified IP address range and run jobs on it.
+
+Your cluster remains running after you close MATLAB. To delete your cluster, follow these instructions.
+
+## Delete Your Cloud Resources
+
+You can remove the CloudFormation stack and all associated resources when you are done with them. Note that you cannot recover resources once they are deleted. After you delete the cloud resources, you cannot use the downloaded profile again.
+
+1. Select your stack in the CloudFormation Stacks screen. Select **Delete**.
+
+     ![CloudFormation Stacks Delete](../../img/cloudformation-delete-stack.png)
+
+2. Confirm the delete when prompted. CloudFormation then deletes your resources within a few minutes.
 
 # Additional Information
 
 ## Port requirements for accessing MATLAB Parallel Server
 
-To access a MATLAB Parallel Server cluster from your client MATLAB, your client machine must be able to communicate on specific ports. Make sure that the network firewall allows the following outgoing connections:
+To access a MATLAB Parallel Server&trade; cluster from your client MATLAB, your client machine must be able to communicate on specific ports. Make sure that the network firewall allows the following outgoing connections:
 
 | Required ports                | Description                                                                           |
 | ----------------------------- | ------------------------------------------------------------------------------------- |
@@ -105,25 +118,15 @@ To access a MATLAB Parallel Server cluster from your client MATLAB, your client 
 *Table 1: Outgoing port requirements*
 
 ## CloudWatch Logs and Metrics
-CloudWatch logs enables you to access logs from all the resources in your stack in a single place. To use CloudWatch logs, launch the stack with the feature "Configure cloudwatch logging for the MATLAB instance" enabled. Once the stack deployment is complete, you can access your logs and metrics in the "Outputs" of the stack by clicking the link next to "CloudWatchLogs" and the link next to "CloudWatchMetrics", respectively. Note that if you delete the stack, the CloudWatch logs are also deleted but the CloudWatch metrics persist. For more information, see [What is Amazon CloudWatch Logs?](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/WhatIsCloudWatchLogs.html).
-
-## Delete Your Cloud Resources
-
-You can remove the CloudFormation stack and all associated resources when you are done with them. Note that there is no undo. After you delete the cloud resources you cannot use the downloaded profile again.
-
-1. Select the Stack in the CloudFormation Stacks screen.  Select **Actions/Delete**.
-
-     ![CloudFormation Stacks Delete](../../img/cloudformation-delete-stack.png)
-
-2. Confirm the delete when prompted.  CloudFormation will now delete your resources which can take a few minutes.
+CloudWatch logs enables you to access logs from all the resources in your stack in a single place. To use CloudWatch logs, enable the feature "Configure cloudwatch logging for the MATLAB instance" while deploying the stack. Once you deploy the stack, you can access your logs and metrics in the "Outputs" of the stack by clicking the link next to "CloudWatchLogs" and  "CloudWatchMetrics", respectively. Note that if you delete the stack, the CloudWatch logs are also deleted but the CloudWatch metrics persist. For more information, see [What is Amazon CloudWatch Logs?](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/WhatIsCloudWatchLogs.html).
 
 ## Use Autoscaling
 
-To optimize the number of Amazon EC2 instances running MATLAB workers, enable autoscaling by setting `Enable instance autoscaling` to `Yes` when you create the stack. Autoscaling is optional and is disabled by default.
+To optimize the number of Amazon EC2&reg; instances running MATLAB workers, enable autoscaling by setting `Enable instance autoscaling` to `Yes` when you create the stack. Autoscaling is optional and is disabled by default.
 
-When autoscaling is disabled, the AWS Auto Scaling group launches `Number of worker nodes` instances. To change the number of worker nodes, use the AWS Management Console.
+When autoscaling is disabled, the AWS Auto Scaling group deploys `Number of worker nodes` instances. To change the number of worker nodes, use the AWS Management Console.
 
-When autoscaling is enabled, the [desired capacity](https://docs.aws.amazon.com/autoscaling/ec2/userguide/asg-capacity-limits.html) of the AWS Auto Scaling group is regulated by the number of workers needed by the cluster. The number of Amazon EC2 instances fluctuates between the `Minimum` and `Maximum number of worker nodes`. To change these limits after you create the stack, use the AWS Management Console. To change the amount of time idle nodes are preserved, adjust the value of the tag `mwWorkerIdleTimeoutMinutes`.
+If you enable autoscaling, the [desired capacity](https://docs.aws.amazon.com/autoscaling/ec2/userguide/asg-capacity-limits.html) of the AWS Auto Scaling group is regulated by the number of workers needed by the cluster. The number of Amazon EC2 instances is initially set at `Number of worker nodes`. This number fluctuates between the `Minimum` and `Maximum number of worker nodes`. To change these limits after you create the stack, use the AWS Management Console. To change the amount of time idle nodes are preserved, adjust the value of the tag `mwWorkerIdleTimeoutMinutes`.
 
 To disable autoscaling in a deployed stack, redeploy the stack with autoscaling disabled.
 
@@ -131,12 +134,11 @@ To disable autoscaling in a deployed stack, redeploy the stack with autoscaling 
 
 By default, MATLAB Job Scheduler (MJS) is configured to manage a wide range of cluster uses.
 
-To change the MJS configuration for advanced use cases, replace the default `mjs_def` with your own file using the template parameter `OptionalUserCommand`. To learn more about the MJS startup parameters and to edit them, see [Define MATLAB Job Scheduler Startup Parameters](https://www.mathworks.com/help/matlab-parallel-server/define-startup-parameters.html).
-For example, to retrieve and use your edited `mjs_def` from a storage service (e.g. Amazon S3&trade;), set the `OptionalUserCommand` to the following:
+To change the MJS configuration for advanced use cases, replace the default `mjs_def` with your own file using the template parameter `OptionalUserCommand`. This overwrites all MJS startup parameters, except for *DEFAULT_JOB_MANAGER_NAME*, *HOSTNAME*, and *SHARED_SECRET_FILE*. To learn more about the MJS startup parameters and to edit them, see [Define MATLAB Job Scheduler Startup Parameters](https://www.mathworks.com/help/matlab-parallel-server/define-startup-parameters.html).
+For example, to retrieve and use your edited `mjs_def` from a storage service (e.g. Amazon S3), set the `OptionalUserCommand` to the following:
 ```
 wget --output-document=${MJS_DEF_FILE} https://<your_bucket>.s3.amazonaws.com/mjs_def.sh
 ```
-
 
 ## Nested Stacks
 
@@ -144,9 +146,9 @@ This CloudFormation template uses nested stacks to reference templates used by m
 
 ## Troubleshooting
 
-If your stack fails to create, check the events section of the CloudFormation console. It will indicate which resources caused the failure and why.
+If your stack fails to create, check the events section of the CloudFormation console. This section indicates which resources caused the failure and why.
 
-If the stack created successfully but you are unable to validate the cluster check the logs on the instances to diagnose the error.
+If you are unable to validate the cluster after creating the stack, check the logs on the instances to diagnose the error.
 
 When using SSH to connect to the instance, login as `ubuntu`.
 
@@ -154,6 +156,6 @@ The logs are output to /var/log on the instance nodes; the files of interest are
 
 ----
 
-Copyright 2018-2023 The MathWorks, Inc.
+Copyright 2018 - 2023 The MathWorks, Inc.
 
 ----
