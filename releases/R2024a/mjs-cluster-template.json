@@ -3,58 +3,58 @@
   "Mappings": {
     "RegionMap": {
       "us-east-1": {
-        "AMI": "ami-0158fb711bf996e05"
+        "AMI": "ami-099479eb9ede24097"
       },
       "us-east-2": {
-        "AMI": "ami-00748e7af42e2afc4"
+        "AMI": "ami-0c0d90d7b61ec04a8"
       },
       "us-west-1": {
-        "AMI": "ami-0b98fb4eaa40a8360"
+        "AMI": "ami-0d02f24026112608a"
       },
       "us-west-2": {
-        "AMI": "ami-0b0b59c91aaeeb7ec"
+        "AMI": "ami-0738bd51e16551bb4"
       },
       "ca-central-1": {
-        "AMI": "ami-075c0d8d6e9c03a1a"
+        "AMI": "ami-003f73971a85ad98f"
       },
       "eu-central-1": {
-        "AMI": "ami-020ea9c3c4581a65f"
+        "AMI": "ami-0275144e736a99b70"
       },
       "eu-west-1": {
-        "AMI": "ami-02f7a765840969415"
+        "AMI": "ami-01044657e8a7ec765"
       },
       "eu-west-2": {
-        "AMI": "ami-03521237d3bc576d9"
+        "AMI": "ami-015ece5005263c490"
       },
       "eu-west-3": {
-        "AMI": "ami-0e424f278ae5cdffc"
+        "AMI": "ami-0b95b1af7725aba0d"
       },
       "eu-north-1": {
-        "AMI": "ami-0b46b72ea8a8cafc6"
+        "AMI": "ami-0c2c66d8caa449451"
       },
       "sa-east-1": {
-        "AMI": "ami-0801f311d8a2aef36"
+        "AMI": "ami-042fbf96b4b57c7c1"
       },
       "me-south-1": {
-        "AMI": "ami-0c9c6934ffe545dad"
+        "AMI": "ami-05b6c59d025464979"
       },
       "ap-east-1": {
-        "AMI": "ami-0e5f1ba553d05dd12"
+        "AMI": "ami-0f9a700d03809cf18"
       },
       "ap-south-1": {
-        "AMI": "ami-0df1377d3f44cf20b"
+        "AMI": "ami-01c37d2073eba7194"
       },
       "ap-northeast-1": {
-        "AMI": "ami-06e6322999783f744"
+        "AMI": "ami-082b702e073c0773c"
       },
       "ap-northeast-2": {
-        "AMI": "ami-09cbf5eca91d242e1"
+        "AMI": "ami-0ee469b9c84746e5e"
       },
       "ap-southeast-1": {
-        "AMI": "ami-0669d7885dde26a83"
+        "AMI": "ami-0fb79885ee1695f5f"
       },
       "ap-southeast-2": {
-        "AMI": "ami-06885562e2bc63691"
+        "AMI": "ami-0f763b8199f7118c9"
       }
     }
   },
@@ -81,6 +81,17 @@
       "Condition": "UseCloudWatch",
       "Properties": {
         "TemplateURL": "https://mathworks-reference-architectures-templates.s3.amazonaws.com/log-location/v1/0/0/log-location.yml"
+      }
+    },
+    "MWStorage": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://mathworks-reference-architectures-templates.s3.amazonaws.com/storage-location/v1/0/0/storage-location.yml",
+        "Parameters": {
+          "BucketName": "",
+          "DeletionPolicy": "Delete",
+          "Versioning": "No"
+        }
       }
     },
     "HeadnodeInstanceRole": {
@@ -118,8 +129,8 @@
                         {
                           "BucketArn": {
                             "Fn::GetAtt": [
-                              "S3Bucket",
-                              "Arn"
+                              "MWStorage",
+                              "Outputs.BucketArn"
                             ]
                           }
                         }
@@ -127,8 +138,8 @@
                     },
                     {
                       "Fn::GetAtt": [
-                        "S3Bucket",
-                        "Arn"
+                        "MWStorage",
+                        "Outputs.BucketArn"
                       ]
                     }
                   ]
@@ -289,8 +300,8 @@
                         {
                           "BucketArn": {
                             "Fn::GetAtt": [
-                              "S3Bucket",
-                              "Arn"
+                              "MWStorage",
+                              "Outputs.BucketArn"
                             ]
                           }
                         }
@@ -298,8 +309,8 @@
                     },
                     {
                       "Fn::GetAtt": [
-                        "S3Bucket",
-                        "Arn"
+                        "MWStorage",
+                        "Outputs.BucketArn"
                       ]
                     }
                   ]
@@ -376,10 +387,6 @@
           }
         ]
       }
-    },
-    "S3Bucket": {
-      "Type": "AWS::S3::Bucket",
-      "Properties": {}
     },
     "Headnode": {
       "Type": "AWS::EC2::Instance",
@@ -535,7 +542,17 @@
                   "Fn::Sub": "export SCHEDULING_ALGORITHM=${MJSSchedulingAlgorithm}"
                 },
                 {
-                  "Fn::Sub": "export S3_BUCKET=s3://${S3Bucket}"
+                  "Fn::Sub": [
+                    "export S3_BUCKET=s3://${BucketName}",
+                    {
+                      "BucketName": {
+                        "Fn::GetAtt": [
+                          "MWStorage",
+                          "Outputs.BucketName"
+                        ]
+                      }
+                    }
+                  ]
                 },
                 {
                   "Fn::Sub": "export OPTIONAL_USER_COMMAND='${OptionalUserCommand}'"
@@ -543,15 +560,23 @@
                 "",
                 "# Run startup scripts",
                 "mkdir -p /var/log/mathworks",
-                "run-parts --exit-on-error --verbose --regex '^[0-9]+_.+$' ${STARTUP_FOLDER} >> /var/log/mathworks/startup.log 2>&1"
+                "run-parts --exit-on-error --verbose --regex '^[0-9]+_.+$' ${STARTUP_FOLDER} >> /var/log/mathworks/startup.log 2>&1",
+                {
+                  "Fn::Sub": "/opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --region ${AWS::Region} --resource Headnode"
+                }
               ]
             ]
           }
         }
+      },
+      "CreationPolicy": {
+        "ResourceSignal": {
+          "Count": "1",
+          "Timeout": "PT30M"
+        }
       }
     },
     "WorkerConfig": {
-      "DependsOn": "Headnode",
       "Type": "AWS::EC2::LaunchTemplate",
       "Properties": {
         "LaunchTemplateData": {
@@ -677,7 +702,17 @@
                     "Fn::Sub": "export USE_SPOT_INSTANCE=${UseSpotInstancesForWorkers}"
                   },
                   {
-                    "Fn::Sub": "export S3_BUCKET=s3://${S3Bucket}"
+                    "Fn::Sub": [
+                      "export S3_BUCKET=s3://${BucketName}",
+                      {
+                        "BucketName": {
+                          "Fn::GetAtt": [
+                            "MWStorage",
+                            "Outputs.BucketName"
+                          ]
+                        }
+                      }
+                    ]
                   },
                   {
                     "Fn::Sub": "export HEADNODE_LOCAL_IP=${Headnode.PrivateIp}"
@@ -753,161 +788,7 @@
         ]
       }
     },
-    "S3DeleteBucketsRole": {
-      "Type": "AWS::IAM::Role",
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Principal": {
-                "Service": [
-                  "lambda.amazonaws.com"
-                ]
-              },
-              "Action": "sts:AssumeRole"
-            }
-          ]
-        },
-        "Path": "/",
-        "Policies": [
-          {
-            "PolicyName": "lambda_basic_execution",
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "logs:CreateLogGroup",
-                    "logs:CreateLogStream",
-                    "logs:PutLogEvents"
-                  ],
-                  "Resource": "arn:aws:logs:*:*:*"
-                }
-              ]
-            }
-          },
-          {
-            "PolicyName": "s3-delete-bucket",
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "s3:DeleteBucket",
-                    "s3:ListBucket"
-                  ],
-                  "Resource": {
-                    "Fn::GetAtt": [
-                      "S3Bucket",
-                      "Arn"
-                    ]
-                  }
-                }
-              ]
-            }
-          },
-          {
-            "PolicyName": "s3-delete-object",
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "s3:DeleteObject"
-                  ],
-                  "Resource": {
-                    "Fn::Sub": [
-                      "${BucketArn}/*",
-                      {
-                        "BucketArn": {
-                          "Fn::GetAtt": [
-                            "S3Bucket",
-                            "Arn"
-                          ]
-                        }
-                      }
-                    ]
-                  }
-                }
-              ]
-            }
-          }
-        ]
-      }
-    },
-    "EmptyBucketsLambda": {
-      "Type": "AWS::Lambda::Function",
-      "DependsOn": "S3Bucket",
-      "Properties": {
-        "Code": {
-          "ZipFile": {
-            "Fn::Join": [
-              "\n",
-              [
-                "# Copyright 2017-2024 The MathWorks, Inc.",
-                "",
-                "import boto3",
-                "import cfnresponse",
-                "",
-                "",
-                "def lambda_handler(event, context):",
-                "    try:",
-                "        if 'RequestType' in event and 'ResourceProperties' in event:",
-                "            if event['RequestType'] == 'Delete':",
-                "                bucket_name = event['ResourceProperties']['BucketName']",
-                "",
-                "                print(f'# Deleting all objects in S3 bucket: {bucket_name}')",
-                "",
-                "                s3 = boto3.resource('s3')",
-                "                bucket = s3.Bucket(bucket_name)",
-                "                bucket.objects.all().delete()",
-                "",
-                "                cfnresponse.send(event, context, cfnresponse.SUCCESS, {'Message': 'Bucket emptied successfully.'})",
-                "            else:",
-                "                cfnresponse.send(event, context, cfnresponse.SUCCESS, {'Message': 'Lambda created and run successfully.'})",
-                "        else:",
-                "            raise ValueError(\"Invalid event data received\")",
-                "    except Exception as e:",
-                "        cfnresponse.send(event, context, cfnresponse.FAILED, {'Message': str(e)})"
-              ]
-            ]
-          }
-        },
-        "Role": {
-          "Fn::GetAtt": [
-            "S3DeleteBucketsRole",
-            "Arn"
-          ]
-        },
-        "Handler": "index.lambda_handler",
-        "Runtime": "python3.12",
-        "Timeout": "60"
-      }
-    },
-    "EmptyBuckets": {
-      "Type": "Custom::LambdaDependency",
-      "Properties": {
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "EmptyBucketsLambda",
-            "Arn"
-          ]
-        },
-        "BucketName": {
-          "Ref": "S3Bucket"
-        }
-      }
-    },
     "HeadNodeASGPolicy": {
-      "DependsOn": [
-        "ClusterScalingGroup",
-        "HeadnodeInstanceRole"
-      ],
       "Type": "AWS::IAM::Policy",
       "Properties": {
         "PolicyName": "asg-access-policy",
@@ -948,10 +829,6 @@
     },
     "OnStackDeleteLambda": {
       "Type": "AWS::Lambda::Function",
-      "DependsOn": [
-        "HeadNodeASGPolicy",
-        "StackDeleteLambdaRole"
-      ],
       "Properties": {
         "Code": {
           "ZipFile": {
@@ -1295,7 +1172,10 @@
     },
     "S3Bucket": {
       "Value": {
-        "Ref": "S3Bucket"
+        "Fn::GetAtt": [
+          "MWStorage",
+          "Outputs.BucketName"
+        ]
       },
       "Description": "The name of the S3 bucket the profile has been saved to"
     },
@@ -1307,7 +1187,17 @@
     },
     "BucketURL": {
       "Value": {
-        "Fn::Sub": "https://s3.console.aws.amazon.com/s3/buckets/${S3Bucket}/"
+        "Fn::Sub": [
+          "https://s3.console.aws.amazon.com/s3/buckets/${BucketName}/",
+          {
+            "BucketName": {
+              "Fn::GetAtt": [
+                "MWStorage",
+                "Outputs.BucketName"
+              ]
+            }
+          }
+        ]
       },
       "Description": "The URL of the S3 bucket in the AWS console that contains the profile"
     },
