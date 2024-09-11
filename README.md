@@ -29,6 +29,7 @@ To view instructions for deploying the MATLAB Parallel Server reference architec
 
 | Linux | Windows |
 | ----- | ------- |
+| [R2024b](releases/R2024b/README.md) | [R2024b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2024b/README.md) |
 | [R2024a](releases/R2024a/README.md) | [R2024a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2024a/README.md) |
 | [R2023b](releases/R2023b/README.md) | [R2023b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2023b/README.md) |
 | [R2023a](releases/R2023a/README.md) | [R2023a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2023a/README.md) |
@@ -111,7 +112,7 @@ Before enabling Spot Instances, consider these three aspects:
 
 * Pricing: Spot Instances offer discounts compared to On-Demand EC2 instances. The actual discount depends on the available unused capacity of the EC2 instance within the Availability Zone (AZ). For more details, refer to the AWS documentation.
 
-* Behavior of your cluster when AWS reclaims a Spot Instance: Spot Instances are used only for the worker nodes, whereas the head node always uses an On-Demand instance. This is to ensure that you do not lose any user job and task information when an EC2 instance is reclaimed by AWS. If an EC2 Spot Instance for a worker is interrupted when it is running a task, the task is marked as failed. Jobs in the queue are run when a new worker instance is available. For more information, refer to [How Parallel Computing Toolbox Runs a Job](https://www.mathworks.com/help/parallel-computing/how-parallel-computing-products-run-a-job.html).
+* Behavior of your cluster when AWS reclaims a Spot Instance: Spot Instances are used only for the worker nodes, whereas the head node always uses an On-Demand instance. This is to ensure that you do not lose any user job and task information when an EC2 instance is reclaimed by AWS. Jobs in the queue are run when a new worker instance is available. For details on how jobs are run, refer to [How Parallel Computing Toolbox Runs a Job](https://www.mathworks.com/help/parallel-computing/how-parallel-computing-products-run-a-job.html). If an EC2 Spot Instance for a worker is interrupted when it is running a task, the task is marked as failed. You can set the maximum number of times to rerun a failed task using the `MaximumRetries` property. For more details, see [Access task properties and behaviors](https://www.mathworks.com/help/parallel-computing/parallel.task.html).
 
 * Parameters for the VPC and subnet in this CloudFormation template: Each Availability Zone in a region has a different capacity available for Spot Instances. To increase the likelihood of obtaining Spot Instances for your cluster, ensure that your VPC has subnets in multiple Availability Zones in the region.
 
@@ -120,6 +121,6 @@ If you require assistance or have a request for additional features or capabilit
 
 ----
 
-Copyright 2018 - 2024 The MathWorks, Inc.
+Copyright 2018-2024 The MathWorks, Inc.
 
 ----
