@@ -105,15 +105,21 @@ You can remove the CloudFormation stack and all associated resources when you ar
 
 # Additional Information
 
-## Port requirements for accessing MATLAB Parallel Server
+## Port Requirements
 
-To access a MATLAB Parallel Server&trade; cluster from your client MATLAB, your client machine must be able to communicate on specific ports. Make sure that the network firewall allows the following outgoing connections:
+Before you can use your MATLAB Parallel Server cluster, you must configure certain required ports on the cluster and client firewall. These ports allow your client machine to connect to the cluster headnode and facilitate communication between the cluster nodes. 
+
+### Cluster Nodes 
+
+For details about the port requirements for cluster nodes, see this information from MathWorks® Support Team on MATLAB Answers: [How do I configure MATLAB Parallel Server using the MATLAB Job Scheduler to work within a firewall?]( https://www.mathworks.com/matlabcentral/answers/94254-how-do-i-configure-matlab-parallel-server-using-the-matlab-job-scheduler-to-work-within-a-firewall). 
+
+Additionally, if your client machine is outside the cluster’s network, then you must configure the network security group of your cluster to allow incoming traffic from your client machine on the following ports. For information on how to configure your network security group, see [Configure security group rules](https://docs.aws.amazon.com/vpc/latest/userguide/working-with-security-group-rules.html). To troubleshoot, see this [page](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/TroubleshootingInstancesConnecting.html). 
 
 | Required ports                | Description                                                                           |
 | ----------------------------- | ------------------------------------------------------------------------------------- |
-| TCP 27350 to 27358 + 4*N      | Ports 27350 to 27358 + 4*N, where N is the maximum number of workers on a single node |
-| TCP 443                       | HTTPS access to (at least) *.mathworks and *.amazonaws.com                            |
-| TCP 22                        |  SSH access to the cluster nodes                                                      |
+| TCP 27350 to 27358 + 4*N      | For connecting to the job manager on the cluster headnode and to the worker nodes for parallel pools. Calculate the required ports based on N, the maximum number of workers on any single node across the entire cluster.  |
+| TCP 443                       |If you are using online licensing, you must open this port for outbound communication from all cluster machines. If you’re using Network License Manager instead, then you must configure ports as listed on [Network License Manager for MATLAB on Amazon Web Services](https://github.com/mathworks-ref-arch/license-manager-for-matlab-on-aws?tab=readme-ov-file#networking-resources). |
+| TCP 22                        |  SSH access to the cluster nodes.                                                      |
 
 *Table 1: Outgoing port requirements*
 
