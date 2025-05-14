@@ -29,6 +29,7 @@ To view instructions for deploying the MATLAB Parallel Server reference architec
 
 | Linux | Windows |
 | ----- | ------- |
+| [R2025a](releases/R2025a/README.md) | [R2025a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2025a/README.md) |
 | [R2024b](releases/R2024b/README.md) | [R2024b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2024b/README.md) |
 | [R2024a](releases/R2024a/README.md) | [R2024a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2024a/README.md) |
 | [R2023b](releases/R2023b/README.md) | [R2023b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2023b/README.md) |
@@ -65,6 +66,7 @@ This diagram illustrates the cluster architecture created by the template. When 
 * IAM role for deletion of S3 bucket (AWS::IAM::Role): A role that allows an AWS lambda function to empty the S3 bucket during shut down of the cluster. CloudFormation can delete the S3 bucket only if it is empty.
 * Lambda function to empty the S3 bucket (AWS::Lambda::Function): A lambda function to empty the S3 bucket created above to allow CloudFormation to successfully delete the S3 bucket when the cluster is shut down.
 * Custom lambda dependency (Custom::LambdaDependency): A custom dependency to trigger the lambda function when the Cloud Formation stack is deleted.
+* Conditional Persisted Storage (AWS::EFS::FileSystem or AWS::EC2::Volume): The cluster offers persisted shared storage mounted at `/shared/persisted` using either Amazon EFS (Elastic File System) or Amazon EBS (Elastic Block Store), depending on your selection. For more information, see the Readme for your desired MATLAB release.
 
 ## FAQ
 
@@ -74,7 +76,7 @@ Parallel Computing Toolbox and MATLAB Parallel Server software let you solve com
 
 ### What is MATLAB Job Scheduler?
 
-MATLAB Job Scheduler is a built-in scheduler that ships with MATLAB Parallel Server. The scheduler coordinates the execution of jobs and distributes the tasks for evaluation to the server’s individual MATLAB sessions called workers. For more details, see [How Parallel Computing Toolbox Runs a Job](https://www.mathworks.com/help/parallel-computing/how-parallel-computing-products-run-a-job.html). The MATLAB Job Scheduler and the resources required by it are created using [AWS CloudFormation templates](https://aws.amazon.com/cloudformation/). 
+MATLAB Job Scheduler is a built-in scheduler that ships with MATLAB Parallel Server. The scheduler coordinates the execution of jobs and distributes the tasks for evaluation to the server’s individual MATLAB sessions called workers. For more details, see [How Parallel Computing Toolbox Runs a Job](https://www.mathworks.com/help/parallel-computing/how-parallel-computing-products-run-a-job.html). The MATLAB Job Scheduler and the resources required by it are created using [AWS CloudFormation templates](https://aws.amazon.com/cloudformation/).
 
 ### What is Amazon Web Services (AWS)?
 
@@ -82,15 +84,31 @@ AWS is a set of cloud services which allow you to build, deploy, and manage appl
 
 ### What skills or specializations do I need to use this Reference Architecture?
 
-No programming or cloud experience required. 
+No programming or cloud experience required.
 
 ### How long does it take to deploy the Reference Architecture?
 
 If you already have an AWS account set up and ready to use, you can start a MATLAB Parallel Server Reference Architecture cluster in less than 15 minutes. Startup time varies depending on the size of your cluster.
 
-### How do I manage limits for AWS services? 
+### How do I manage limits for AWS services?
 
 To learn about setting quotas, see [AWS Service Quotas](https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html).
+
+### How can I reuse my MATLAB Job Scheduler data between clusters?
+
+You can reuse your MATLAB Job Scheduler data only if both clusters use the same MATLAB version and the same cluster name. To do this, you must create an EBS snapshot to persist the cluster data from the first cluster and then reuse that snapshot when you create another cluster.
+
+1) To persist your cluster data, enable the "Create EBS Snapshot on Stack Deletion" option in the CloudFormation template. This creates an EBS snapshot when you delete the stack. You can add a tag value to this snapshot to help you identify it later. The tag key is `mw-ConfigId`. 
+
+If you deployed a cluster without enabling the `Create EBS Snapshot on Stack Deletion’, you can still manually create an EBS snapshot. To do this, go to the AWS EC2 console and locate the Headnode EC2 instance. Open the "Storage" tab and select the volume with the device name "/dev/sdh", then select "Create snapshot" from the "Actions" menu.
+
+2) To reuse this snapshot, use the "EBS Snapshot ID" CloudFormation parameter when you create a new cluster.
+
+Note: 
+    - AWS charges for EBS snapshots. If you no longer need the snapshot, delete it to avoid incurring ongoing storage costs.
+    - If you enable the "Create EBS Snapshot on Stack Deletion" option, make sure you do not change the value of the `SharedEBSVolumeSize` in your consecutive deployments.
+    - Make sure that you use the new cluster profile after every new stack deployment.
+
 
 ### How do I copy the AMI to a different region?
 
@@ -121,6 +139,6 @@ If you require assistance or have a request for additional features or capabilit
 
 ----
 
-Copyright 2018-2024 The MathWorks, Inc.
+Copyright 2018-2025 The MathWorks, Inc.
 
 ----
