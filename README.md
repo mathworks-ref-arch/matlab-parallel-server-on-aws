@@ -13,7 +13,7 @@ This reference architecture has been reviewed and qualified by AWS.
 Before starting, you need the following:
 
 * A MATLAB Parallel Server license. You can use either:
-    * A MATLAB Parallel Server license configured to use online licensing for MATLAB. For information on how to configure your license for cloud use, see [Configure MATLAB Parallel Server Licensing for Cloud Platforms](https://www.mathworks.com/help/matlab-parallel-server/configure-matlab-parallel-server-licensing-for-cloud-platforms.html)
+    * A MATLAB Parallel Server license configured to use online licensing for MATLAB. For information on how to configure your license for cloud use, see [Configure MATLAB Parallel Server Licensing for Cloud Platforms](https://www.mathworks.com/help/matlab-parallel-server/configure-matlab-parallel-server-licensing-for-cloud-platforms.html).
     * A network license manager for MATLAB hosting sufficient MATLAB Parallel Server licenses for your cluster. MathWorks&reg; provides a reference architecture to deploy a suitable [Network License Manager for MATLAB on Amazon Web Services](https://github.com/mathworks-ref-arch/license-manager-for-matlab-on-aws), or you can use an existing license manager.
 * MATLAB and Parallel Computing Toolbox&trade; on your desktop.
 * An AWS account with required permissions.
@@ -29,6 +29,7 @@ To view instructions for deploying the MATLAB Parallel Server reference architec
 
 | Linux | Windows |
 | ----- | ------- |
+| [R2025b](releases/R2025b/README.md) | [R2025b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2025b/README.md) |
 | [R2025a](releases/R2025a/README.md) | [R2025a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2025a/README.md) |
 | [R2024b](releases/R2024b/README.md) | [R2024b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2024b/README.md) |
 | [R2024a](releases/R2024a/README.md) | [R2024a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2024a/README.md) |

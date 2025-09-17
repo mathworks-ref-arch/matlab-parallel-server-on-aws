@@ -1,0 +1,2016 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Mappings": {
+    "RegionMap": {
+      "us-east-1": {
+        "AMI": "ami-0868b93f1fa69607a"
+      },
+      "us-west-2": {
+        "AMI": "ami-0e3476248391690b1"
+      },
+      "eu-west-1": {
+        "AMI": "ami-0b00415af2f5d85ca"
+      },
+      "ap-northeast-1": {
+        "AMI": "ami-0c799a34e71e61d1e"
+      },
+      "us-east-2": {
+        "AMI": "Enter the ID of a custom AMI in this region."
+      },
+      "us-west-1": {
+        "AMI": "Enter the ID of a custom AMI in this region."
+      },
+      "ca-central-1": {
+        "AMI": "Enter the ID of a custom AMI in this region."
+      },
+      "eu-central-1": {
+        "AMI": "Enter the ID of a custom AMI in this region."
+      },
+      "eu-west-2": {
+        "AMI": "Enter the ID of a custom AMI in this region."
+      },
+      "eu-west-3": {
+        "AMI": "Enter the ID of a custom AMI in this region."
+      },
+      "eu-north-1": {
+        "AMI": "Enter the ID of a custom AMI in this region."
+      },
+      "sa-east-1": {
+        "AMI": "Enter the ID of a custom AMI in this region."
+      },
+      "me-south-1": {
+        "AMI": "Enter the ID of a custom AMI in this region."
+      },
+      "ap-east-1": {
+        "AMI": "Enter the ID of a custom AMI in this region."
+      },
+      "ap-south-1": {
+        "AMI": "Enter the ID of a custom AMI in this region."
+      },
+      "ap-northeast-2": {
+        "AMI": "Enter the ID of a custom AMI in this region."
+      },
+      "ap-southeast-1": {
+        "AMI": "Enter the ID of a custom AMI in this region."
+      },
+      "ap-southeast-2": {
+        "AMI": "Enter the ID of a custom AMI in this region."
+      }
+    }
+  },
+  "Resources": {
+    "MWSecurityGroup": {
+      "Type": "AWS::CloudFormation::Stack",
+      "DeletionPolicy": "Delete",
+      "UpdateReplacePolicy": "Delete",
+      "Properties": {
+        "TemplateURL": "https://mathworks-reference-architectures-templates.s3.amazonaws.com/security-group/v2/1/1/security-group.yml",
+        "Parameters": {
+          "VpcId": {
+            "Ref": "VPC"
+          },
+          "CidrRanges": {
+            "Ref": "ClientIPAddress"
+          },
+          "SSHAccess": "Yes",
+          "MJSAccess": "Yes",
+          "InternalAccess": "Yes",
+          "EndPortForMJSAccess": {
+            "Fn::GetAtt": [
+              "CalculateMJSEndPort",
+              "Value"
+            ]
+          }
+        }
+      }
+    },
+    "MWLogLocation": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Condition": "UseCloudWatch",
+      "DeletionPolicy": "Delete",
+      "UpdateReplacePolicy": "Delete",
+      "Properties": {
+        "TemplateURL": "https://mathworks-reference-architectures-templates.s3.amazonaws.com/log-location/v1/0/0/log-location.yml"
+      }
+    },
+    "MWStorage": {
+      "Type": "AWS::CloudFormation::Stack",
+      "DeletionPolicy": "Delete",
+      "UpdateReplacePolicy": "Delete",
+      "Properties": {
+        "TemplateURL": "https://mathworks-reference-architectures-templates.s3.amazonaws.com/storage-location/v1/0/0/storage-location.yml",
+        "Parameters": {
+          "BucketName": "",
+          "DeletionPolicy": "Delete",
+          "Versioning": "No"
+        }
+      }
+    },
+    "MJSEBSSnapshotManager": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Condition": "CreateSnapshotOnStackDeletion",
+      "DeletionPolicy": "Delete",
+      "UpdateReplacePolicy": "Delete",
+      "Properties": {
+        "TemplateURL": "https://mathworks-reference-architectures-templates.s3.us-east-1.amazonaws.com/ebs-snapshot-lambda/v1/0/1/ebs-snapshot-lambda.yml",
+        "Parameters": {
+          "EC2InstanceId": {
+            "Ref": "Headnode"
+          },
+          "VolumeDeviceName": "/dev/sdh",
+          "PreSnapshotCommand": "{{AWS-RunShellScript}}/usr/local/matlab/toolbox/parallel/bin/mjs stop -cleanPreserveJobs",
+          "Tags": {
+            "Fn::Sub": "Name=MW-MATLABParallelServer-${ClusterName},mw-ConfigId=${SnapshotTag},mw-CreatedFromStack=${AWS::StackName},mw-ProductId=MATLABParallelServer,mw-CreatedFromStackId=${AWS::StackId},mw-ClusterName=${ClusterName}"
+          },
+          "ProductId": "MATLABParallelServerLinux"
+        }
+      }
+    },
+    "HeadnodeInstanceRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "s3-access-policy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:PutObject",
+                    "s3:ListBucket",
+                    "s3:DeleteObject"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": [
+                        "${BucketArn}/*",
+                        {
+                          "BucketArn": {
+                            "Fn::GetAtt": [
+                              "MWStorage",
+                              "Outputs.BucketArn"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "MWStorage",
+                        "Outputs.BucketArn"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "Fn::If": [
+              "UseCloudWatch",
+              {
+                "PolicyName": "cloudwatch-access-policy",
+                "PolicyDocument": {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "logs:CreateLogStream",
+                        "logs:DescribeLogStreams",
+                        "logs:PutLogEvents"
+                      ],
+                      "Resource": {
+                        "Fn::Sub": [
+                          "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${name}:*",
+                          {
+                            "name": {
+                              "Fn::GetAtt": [
+                                "MWLogLocation",
+                                "Outputs.LogGroupName"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "Action": [
+                        "cloudwatch:PutMetricData"
+                      ],
+                      "Resource": "*",
+                      "Effect": "Allow"
+                    }
+                  ]
+                }
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          },
+          {
+            "PolicyName": "ssm-access-policy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ssm:DescribeAssociation",
+                    "ssm:GetDocument",
+                    "ssm:DescribeDocument",
+                    "ssm:GetParameter",
+                    "ssm:GetParameters",
+                    "ssm:ListAssociations",
+                    "ssm:ListInstanceAssociations",
+                    "ssm:UpdateAssociationStatus",
+                    "ssm:UpdateInstanceAssociationStatus",
+                    "ssm:UpdateInstanceInformation"
+                  ],
+                  "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ssmmessages:CreateControlChannel",
+                    "ssmmessages:CreateDataChannel",
+                    "ssmmessages:OpenControlChannel",
+                    "ssmmessages:OpenDataChannel"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          },
+          {
+            "PolicyName": "ec2-access-policy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "VisualEditor0",
+                  "Effect": "Allow",
+                  "Action": "ec2:DescribeInstances",
+                  "Resource": "*"
+                },
+                {
+                  "Sid": "VisualEditor1",
+                  "Effect": "Allow",
+                  "Action": "ec2:DescribeInstanceTypes",
+                  "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": "ec2:CreateTags",
+                  "Resource": {
+                    "Fn::Sub": "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
+                  },
+                  "Condition": {
+                    "StringEquals": {
+                      "aws:ResourceTag/aws:cloudformation:stack-id": {
+                        "Ref": "AWS::StackId"
+                      }
+                    }
+                  }
+                },
+                {
+                  "Sid": "VisualEditor2",
+                  "Effect": "Allow",
+                  "Action": "ec2:TerminateInstances",
+                  "Resource": "*",
+                  "Condition": {
+                    "StringEquals": {
+                      "aws:ResourceTag/aws:cloudformation:stack-id": {
+                        "Ref": "AWS::StackId"
+                      }
+                    }
+                  }
+                },
+                {
+                  "Sid": "VisualEditor3",
+                  "Effect": "Allow",
+                  "Action": "cloudformation:DescribeStackResource",
+                  "Resource": "*"
+                }
+              ]
+            }
+          },
+          {
+            "PolicyName": "cft-access-policy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "VisualEditor0",
+                  "Effect": "Allow",
+                  "Action": [
+                    "cloudformation:DescribeStackResources",
+                    "cloudformation:DescribeStacks"
+                  ],
+                  "Resource": [
+                    {
+                      "Ref": "AWS::StackId"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "HeadnodeInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "HeadnodeInstanceRole"
+          }
+        ]
+      }
+    },
+    "WorkerInstanceRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "s3-access-policy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetObject",
+                    "s3:ListBucket"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": [
+                        "${BucketArn}/*",
+                        {
+                          "BucketArn": {
+                            "Fn::GetAtt": [
+                              "MWStorage",
+                              "Outputs.BucketArn"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "MWStorage",
+                        "Outputs.BucketArn"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "Fn::If": [
+              "UseCloudWatch",
+              {
+                "PolicyName": "cloudwatch-access-policy",
+                "PolicyDocument": {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "logs:CreateLogStream",
+                        "logs:DescribeLogStreams",
+                        "logs:PutLogEvents"
+                      ],
+                      "Resource": {
+                        "Fn::Sub": [
+                          "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${name}:*",
+                          {
+                            "name": {
+                              "Fn::GetAtt": [
+                                "MWLogLocation",
+                                "Outputs.LogGroupName"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "Action": "cloudwatch:PutMetricData",
+                      "Resource": "*",
+                      "Effect": "Allow"
+                    }
+                  ]
+                }
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          },
+          {
+            "PolicyName": "ec2-access-policy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "VisualEditor0",
+                  "Effect": "Allow",
+                  "Action": "ec2:DescribeInstanceTypes",
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "WorkerInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "WorkerInstanceRole"
+          }
+        ]
+      }
+    },
+    "Headnode": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "InstanceType": {
+          "Ref": "HeadnodeInstanceType"
+        },
+        "IamInstanceProfile": {
+          "Ref": "HeadnodeInstanceProfile"
+        },
+        "SecurityGroupIds": [
+          {
+            "Fn::GetAtt": [
+              "MWSecurityGroup",
+              "Outputs.SecurityGroupId"
+            ]
+          },
+          {
+            "Fn::If": [
+              "AddSG",
+              {
+                "Ref": "AdditionalSecurityGroup"
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          }
+        ],
+        "SubnetId": {
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "Subnets"
+            }
+          ]
+        },
+        "KeyName": {
+          "Ref": "SSHKeyName"
+        },
+        "ImageId": {
+          "Fn::If": [
+            "OverrideAmi",
+            {
+              "Ref": "InstanceAmiCustom"
+            },
+            {
+              "Fn::FindInMap": [
+                "RegionMap",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "AMI"
+              ]
+            }
+          ]
+        },
+        "EbsOptimized": "true",
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sdh",
+            "Ebs": {
+              "VolumeSize": {
+                "Ref": "SharedEBSVolumeSize"
+              },
+              "SnapshotId": {
+                "Fn::If": [
+                  "RestoreFromSnapshot",
+                  {
+                    "Ref": "PreviousDataSnapshotId"
+                  },
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ClusterName}-Headnode"
+            }
+          },
+          {
+            "Key": "NodeType",
+            "Value": "Headnode"
+          },
+          {
+            "Key": "mw-state",
+            "Value": "initializing"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "\n",
+              [
+                "Content-Type: multipart/mixed; boundary=\"//\"",
+                "MIME-Version: 1.0",
+                "--//",
+                "Content-Type: text/cloud-config; charset=\"us-ascii\"",
+                "MIME-Version: 1.0",
+                "Content-Transfer-Encoding: 7bit",
+                "Content-Disposition: attachment; filename=\"cloud-config.txt\"",
+                "#cloud-config",
+                "cloud_final_modules:",
+                "- [scripts-user, always]",
+                "--//",
+                "Content-Type: text/x-shellscript; charset=\"us-ascii\"",
+                "MIME-Version: 1.0",
+                "Content-Transfer-Encoding: 7bit",
+                "Content-Disposition: attachment; filename=\"userdata.txt\"",
+                "#!/bin/bash",
+                "",
+                "# Copyright 2022-2023 The MathWorks, Inc.",
+                "",
+                "# Redirect all output to a log file",
+                "mkdir -p /var/log/mathworks",
+                "exec > >(tee -a /var/log/mathworks/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1",
+                "PS4='+ [\\d \\t] '",
+                "set -x",
+                "",
+                "export NODE_TYPE=HEADNODE",
+                {
+                  "Fn::Sub": "export ENABLE_SHARED_FS=${EnableSharedFS}"
+                },
+                "STARTUP_FOLDER=/opt/mathworks/startup",
+                "# Load startup variables",
+                "if [[ -r ${STARTUP_FOLDER}/.env ]]; then",
+                "    set -o allexport",
+                "    source ${STARTUP_FOLDER}/.env",
+                "    set +o allexport",
+                "fi",
+                "",
+                "# Define startup parameters",
+                {
+                  "Fn::Sub": [
+                    "export CLOUD_LOG_NAME=${LogGroupName}",
+                    {
+                      "LogGroupName": {
+                        "Fn::If": [
+                          "UseCloudWatch",
+                          {
+                            "Fn::GetAtt": [
+                              "MWLogLocation",
+                              "Outputs.LogGroupName"
+                            ]
+                          },
+                          ""
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "Fn::Sub": "export WORKERS_PER_NODE=${NumWorkersPerNode}"
+                },
+                {
+                  "Fn::Sub": "export ENABLE_AUTOSCALING=${EnableAutoscaling}"
+                },
+                {
+                  "Fn::Sub": "export TERMINATION_POLICY='${AutomaticallyTerminateCluster}'"
+                },
+                {
+                  "Fn::Sub": "export MAX_NODES=${MaxWorkerNodes}"
+                },
+                {
+                  "Fn::Sub": "export DESIRED_CAPACITY=${NumWorkerNodes}"
+                },
+                {
+                  "Fn::Sub": "export MLM_LICENSE_FILE=${LicenseManager}"
+                },
+                {
+                  "Fn::Sub": "export JOB_MANAGER_NAME='${ClusterName}'"
+                },
+                {
+                  "Fn::Sub": "export SECURITY_LEVEL=${MJSSecurityLevel}"
+                },
+                {
+                  "Fn::Sub": "export SCHEDULING_ALGORITHM=${MJSSchedulingAlgorithm}"
+                },
+                {
+                  "Fn::Sub": "export MJS_DATA_EBS_SNAPSHOT_ID=${PreviousDataSnapshotId}"
+                },
+                {
+                  "Fn::Sub": "export SHARED_EBS_VOLUME_SIZE=${SharedEBSVolumeSize}"
+                },
+                {
+                  "Fn::If": [
+                    "UseSharedEFSStorage",
+                    {
+                      "Fn::Sub": "export EFS_FILE_SYSTEM_ID=${EFSFileSystem}"
+                    },
+                    ""
+                  ]
+                },
+                {
+                  "Fn::Sub": "export CLUSTER_LOG_LEVEL=${ClusterLogLevel}"
+                },
+                {
+                  "Fn::Sub": "export HEADNODE_INSTANCE_TYPE=${HeadnodeInstanceType}"
+                },
+                {
+                  "Fn::Sub": "export WORKERNODE_INSTANCE_TYPE=${WorkerInstanceType}"
+                },
+                {
+                  "Fn::Sub": [
+                    "export S3_BUCKET=s3://${BucketName}",
+                    {
+                      "BucketName": {
+                        "Fn::GetAtt": [
+                          "MWStorage",
+                          "Outputs.BucketName"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "export OPTIONAL_USER_COMMAND='",
+                      {
+                        "Fn::Base64": {
+                          "Ref": "OptionalUserCommand"
+                        }
+                      },
+                      "'"
+                    ]
+                  ]
+                },
+                "",
+                "# Decode and execute the optional user command",
+                "OUC_EXIT_STATUS=0",
+                "if [[ -n \"${OPTIONAL_USER_COMMAND}\" ]]; then",
+                "    echo 'Decoding and executing optional user command...'",
+                "    DECODED_COMMAND=$(echo ${OPTIONAL_USER_COMMAND} | base64 --decode)",
+                "    eval \"${DECODED_COMMAND}\"",
+                "    OUC_EXIT_STATUS=$?",
+                "    source /etc/profile",
+                "fi",
+                "",
+                "# Run startup scripts if the optional user command succeeded",
+                "if [[ $OUC_EXIT_STATUS -eq 0 ]]; then",
+                "    run-parts --exit-on-error --verbose --regex '^[0-9]+_.+$' ${STARTUP_FOLDER} >> /var/log/mathworks/startup.log 2>&1",
+                "    EXIT_STATUS=$?",
+                "else",
+                "    EXIT_STATUS=$OUC_EXIT_STATUS",
+                "fi",
+                "",
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "/opt/aws/bin/cfn-signal -e ${EXIT_STATUS} --stack ",
+                      {
+                        "Ref": "AWS::StackName"
+                      },
+                      " --resource Headnode --region ",
+                      {
+                        "Ref": "AWS::Region"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            ]
+          }
+        }
+      },
+      "CreationPolicy": {
+        "ResourceSignal": {
+          "Count": "1",
+          "Timeout": {
+            "Fn::If": [
+              "RestoreFromSnapshot",
+              {
+                "Fn::Sub": "PT${CalculateHeadnodeTimeoutInHour.Value}H"
+              },
+              "PT30M"
+            ]
+          }
+        }
+      }
+    },
+    "document": {
+      "Type": "AWS::SSM::Document",
+      "Properties": {
+        "DocumentType": "Command",
+        "Content": {
+          "schemaVersion": "2.2",
+          "description": "Run a script on Linux instances.",
+          "parameters": {
+            "commands": {
+              "type": "String",
+              "description": "Command to run on EC2 instance",
+              "default": "echo 'Hello World'"
+            }
+          },
+          "mainSteps": [
+            {
+              "action": "aws:runShellScript",
+              "name": "runCommands",
+              "inputs": {
+                "timeoutSeconds": "60",
+                "runCommand": [
+                  "{{ commands }}"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "WorkerConfig": {
+      "Type": "AWS::EC2::LaunchTemplate",
+      "Properties": {
+        "LaunchTemplateData": {
+          "SecurityGroupIds": [
+            {
+              "Fn::GetAtt": [
+                "MWSecurityGroup",
+                "Outputs.SecurityGroupId"
+              ]
+            },
+            {
+              "Fn::If": [
+                "AddSG",
+                {
+                  "Ref": "AdditionalSecurityGroup"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            }
+          ],
+          "MetadataOptions": {
+            "InstanceMetadataTags": "enabled"
+          },
+          "ImageId": {
+            "Fn::If": [
+              "OverrideAmi",
+              {
+                "Ref": "InstanceAmiCustom"
+              },
+              {
+                "Fn::FindInMap": [
+                  "RegionMap",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  "AMI"
+                ]
+              }
+            ]
+          },
+          "InstanceType": {
+            "Ref": "WorkerInstanceType"
+          },
+          "InstanceMarketOptions": {
+            "Fn::If": [
+              "UseSpotInstances",
+              {
+                "MarketType": "spot",
+                "SpotOptions": {
+                  "InstanceInterruptionBehavior": "terminate",
+                  "SpotInstanceType": "one-time"
+                }
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          },
+          "IamInstanceProfile": {
+            "Name": {
+              "Ref": "WorkerInstanceProfile"
+            }
+          },
+          "KeyName": {
+            "Ref": "SSHKeyName"
+          },
+          "UserData": {
+            "Fn::Base64": {
+              "Fn::Join": [
+                "\n",
+                [
+                  "Content-Type: multipart/mixed; boundary=\"//\"",
+                  "MIME-Version: 1.0",
+                  "--//",
+                  "Content-Type: text/cloud-config; charset=\"us-ascii\"",
+                  "MIME-Version: 1.0",
+                  "Content-Transfer-Encoding: 7bit",
+                  "Content-Disposition: attachment; filename=\"cloud-config.txt\"",
+                  "#cloud-config",
+                  "cloud_final_modules:",
+                  "- [scripts-user, always]",
+                  "--//",
+                  "Content-Type: text/x-shellscript; charset=\"us-ascii\"",
+                  "MIME-Version: 1.0",
+                  "Content-Transfer-Encoding: 7bit",
+                  "Content-Disposition: attachment; filename=\"userdata.txt\"",
+                  "#!/bin/bash",
+                  "",
+                  "# Copyright 2022-2023 The MathWorks, Inc.",
+                  "",
+                  "# Redirect all output to a log file",
+                  "mkdir -p /var/log/mathworks",
+                  "exec > >(tee -a /var/log/mathworks/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1",
+                  "export NODE_TYPE=WORKER",
+                  {
+                    "Fn::Sub": "export ENABLE_SHARED_FS=${EnableSharedFS}"
+                  },
+                  "",
+                  "STARTUP_FOLDER=/opt/mathworks/startup",
+                  "# Load startup variables",
+                  "if [[ -r ${STARTUP_FOLDER}/.env ]]; then",
+                  "    set -o allexport",
+                  "    source ${STARTUP_FOLDER}/.env",
+                  "    set +o allexport",
+                  "fi",
+                  "",
+                  "# Define startup parameters",
+                  {
+                    "Fn::Sub": [
+                      "export CLOUD_LOG_NAME=${LogGroupName}",
+                      {
+                        "LogGroupName": {
+                          "Fn::If": [
+                            "UseCloudWatch",
+                            {
+                              "Fn::GetAtt": [
+                                "MWLogLocation",
+                                "Outputs.LogGroupName"
+                              ]
+                            },
+                            ""
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "Fn::Sub": "export WORKERS_PER_NODE=${NumWorkersPerNode}"
+                  },
+                  {
+                    "Fn::Sub": "export MLM_LICENSE_FILE=${LicenseManager}"
+                  },
+                  {
+                    "Fn::Sub": "export JOB_MANAGER_NAME='${ClusterName}'"
+                  },
+                  {
+                    "Fn::Sub": "export TERMINATION_POLICY='${AutomaticallyTerminateCluster}'"
+                  },
+                  {
+                    "Fn::Sub": "export SECURITY_LEVEL=${MJSSecurityLevel}"
+                  },
+                  {
+                    "Fn::Sub": "export SCHEDULING_ALGORITHM=${MJSSchedulingAlgorithm}"
+                  },
+                  {
+                    "Fn::Sub": "export USE_SPOT_INSTANCE=${UseSpotInstancesForWorkers}"
+                  },
+                  {
+                    "Fn::Sub": "export CLUSTER_LOG_LEVEL=${ClusterLogLevel}"
+                  },
+                  {
+                    "Fn::Sub": "export SHARED_EBS_VOLUME_SIZE=${SharedEBSVolumeSize}"
+                  },
+                  {
+                    "Fn::If": [
+                      "UseSharedEFSStorage",
+                      {
+                        "Fn::Sub": "export EFS_FILE_SYSTEM_ID=${EFSFileSystem}"
+                      },
+                      ""
+                    ]
+                  },
+                  {
+                    "Fn::Sub": [
+                      "export S3_BUCKET=s3://${BucketName}",
+                      {
+                        "BucketName": {
+                          "Fn::GetAtt": [
+                            "MWStorage",
+                            "Outputs.BucketName"
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "Fn::Sub": "export HEADNODE_LOCAL_IP=${Headnode.PrivateIp}"
+                  },
+                  {
+                    "Fn::Sub": "export HEADNODE_HOSTNAME='${Headnode.PublicDnsName}'"
+                  },
+                  {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "export OPTIONAL_USER_COMMAND='",
+                        {
+                          "Fn::Base64": {
+                            "Ref": "OptionalUserCommand"
+                          }
+                        },
+                        "'"
+                      ]
+                    ]
+                  },
+                  "",
+                  "# Decode and execute the optional user command",
+                  "if [[ -n \"${OPTIONAL_USER_COMMAND}\" ]]; then",
+                  "    DECODED_COMMAND=$(echo ${OPTIONAL_USER_COMMAND} | base64 --decode)",
+                  "    eval \"${DECODED_COMMAND}\"",
+                  "    source /etc/profile",
+                  "fi",
+                  "",
+                  "# Run startup scripts",
+                  "mkdir -p /var/log/mathworks",
+                  "run-parts --exit-on-error --verbose --regex '^[0-9]+_.+$' ${STARTUP_FOLDER} >> /var/log/mathworks/startup.log 2>&1"
+                ]
+              ]
+            }
+          }
+        }
+      }
+    },
+    "ClusterScalingGroup": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "Properties": {
+        "LaunchTemplate": {
+          "LaunchTemplateId": {
+            "Ref": "WorkerConfig"
+          },
+          "Version": {
+            "Fn::GetAtt": [
+              "WorkerConfig",
+              "LatestVersionNumber"
+            ]
+          }
+        },
+        "NewInstancesProtectedFromScaleIn": {
+          "Fn::If": [
+            "UseScaleInProtection",
+            true,
+            false
+          ]
+        },
+        "DesiredCapacity": {
+          "Ref": "NumWorkerNodes"
+        },
+        "MinSize": {
+          "Ref": "MinWorkerNodes"
+        },
+        "MaxSize": {
+          "Ref": "MaxWorkerNodes"
+        },
+        "VPCZoneIdentifier": {
+          "Ref": "Subnets"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Ref": "ClusterName"
+            },
+            "PropagateAtLaunch": "true"
+          },
+          {
+            "Key": "NodeType",
+            "Value": "WorkerNode",
+            "PropagateAtLaunch": "true"
+          },
+          {
+            "Key": "mwWorkerIdleTimeoutMinutes",
+            "Value": "10",
+            "PropagateAtLaunch": "false"
+          }
+        ]
+      }
+    },
+    "HeadNodeASGPolicy": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "asg-access-policy",
+        "Roles": [
+          {
+            "Ref": "HeadnodeInstanceRole"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "VisualEditor0",
+              "Effect": "Allow",
+              "Action": [
+                "autoscaling:SetDesiredCapacity",
+                "autoscaling:SetInstanceProtection",
+                "autoscaling:CreateOrUpdateTags",
+                "autoscaling:UpdateAutoScalingGroup",
+                "autoscaling:SetInstanceHealth"
+              ],
+              "Resource": {
+                "Fn::Sub": "arn:${AWS::Partition}:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${ClusterScalingGroup}"
+              }
+            },
+            {
+              "Sid": "VisualEditor1",
+              "Effect": "Allow",
+              "Action": [
+                "autoscaling:DescribeAutoScalingInstances",
+                "autoscaling:DescribeAutoScalingGroups"
+              ],
+              "Resource": "*"
+            }
+          ]
+        }
+      }
+    },
+    "OnStackDeleteLambda": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "ZipFile": {
+            "Fn::Join": [
+              "\n",
+              [
+                "# Copyright 2020-2021 The MathWorks, Inc.",
+                "",
+                "import boto3",
+                "import cfnresponse",
+                "",
+                "def lambda_handler(event, context):",
+                "    print(f\"Region = {event['ResourceProperties']['Region']}\")",
+                "    print(f\"ASGName = {event['ResourceProperties']['ASGName']}\")",
+                "    responseData = {}",
+                "    if event['RequestType'] == 'Delete':",
+                "        responseData['output'] = 'This was a delete event.'",
+                "        asg_client = boto3.client('autoscaling', region_name=event['ResourceProperties']['Region'])",
+                "        asg_response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=[event['ResourceProperties']['ASGName']])",
+                "        asgClient = boto3.client('autoscaling', region_name=event['ResourceProperties']['Region'])",
+                "        for auto_scaling_group in asg_response['AutoScalingGroups']:",
+                "            for instance in auto_scaling_group['Instances']:",
+                "                asgClient.set_instance_protection(InstanceIds=[instance['InstanceId']], AutoScalingGroupName=event['ResourceProperties']['ASGName'], ProtectedFromScaleIn=False)",
+                "                print(f'Unprotected : {instance[\"InstanceId\"]}')",
+                "    else:",
+                "        responseData['output'] = 'This was not a delete event.'",
+                "    cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData, \"CustomResourcePhysicalID\")"
+              ]
+            ]
+          }
+        },
+        "Handler": "index.lambda_handler",
+        "Runtime": "python3.13",
+        "Timeout": "60",
+        "Role": {
+          "Fn::GetAtt": [
+            "StackDeleteLambdaRole",
+            "Arn"
+          ]
+        }
+      }
+    },
+    "OnStackDelete": {
+      "Type": "Custom::LambdaDependency",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "OnStackDeleteLambda",
+            "Arn"
+          ]
+        },
+        "ASGName": {
+          "Ref": "ClusterScalingGroup"
+        },
+        "Region": {
+          "Ref": "AWS::Region"
+        }
+      }
+    },
+    "StackDeleteLambdaRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "ec2-access-policy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "autoscaling:SetInstanceProtection"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": "arn:${AWS::Partition}:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${ClusterScalingGroup}"
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "autoscaling:DescribeAutoScalingGroups"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "EFSFileSystem": {
+      "Type": "AWS::EFS::FileSystem",
+      "Condition": "UseSharedEFSStorage",
+      "DeletionPolicy": "Delete",
+      "UpdateReplacePolicy": "Delete",
+      "Properties": {
+        "FileSystemTags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Ref": "AWS::StackName"
+            }
+          }
+        ],
+        "PerformanceMode": "generalPurpose",
+        "ThroughputMode": "elastic",
+        "Encrypted": "false",
+        "BackupPolicy": {
+          "Status": "DISABLED"
+        },
+        "LifecyclePolicies": [
+          {
+            "TransitionToIA": "AFTER_1_DAY"
+          },
+          {
+            "TransitionToPrimaryStorageClass": "AFTER_1_ACCESS"
+          }
+        ]
+      }
+    },
+    "EFSMountTarget": {
+      "Type": "AWS::EFS::MountTarget",
+      "Condition": "UseSharedEFSStorage",
+      "Properties": {
+        "FileSystemId": {
+          "Ref": "EFSFileSystem"
+        },
+        "SubnetId": {
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "Subnets"
+            }
+          ]
+        },
+        "SecurityGroups": [
+          {
+            "Fn::GetAtt": [
+              "MWSecurityGroup",
+              "Outputs.SecurityGroupId"
+            ]
+          }
+        ]
+      }
+    },
+    "CalculatorLambdaExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  {
+                    "Fn::Sub": "lambda.${AWS::URLSuffix}"
+                  }
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "LambdaBasicExecution",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": [
+                      "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${CalculatorLambdaName}*",
+                      {
+                        "CalculatorLambdaName": {
+                          "Fn::Join": [
+                            "-",
+                            [
+                              "CalculatorLambda",
+                              {
+                                "Fn::Select": [
+                                  "2",
+                                  {
+                                    "Fn::Split": [
+                                      "/",
+                                      {
+                                        "Ref": "AWS::StackId"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "CalculatorLambda": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "FunctionName": {
+          "Fn::Join": [
+            "-",
+            [
+              "CalculatorLambda",
+              {
+                "Fn::Select": [
+                  "2",
+                  {
+                    "Fn::Split": [
+                      "/",
+                      {
+                        "Ref": "AWS::StackId"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          ]
+        },
+        "Handler": "index.lambda_handler",
+        "Runtime": "python3.13",
+        "Role": {
+          "Fn::GetAtt": [
+            "CalculatorLambdaExecutionRole",
+            "Arn"
+          ]
+        },
+        "Code": {
+          "ZipFile": {
+            "Fn::Join": [
+              "\n",
+              [
+                "# Copyright 2025 The MathWorks, Inc.",
+                "",
+                "import cfnresponse",
+                "import re",
+                "",
+                "def is_valid_expression(expression):",
+                "    # Define a regex pattern that matches only numbers, operators, and parentheses",
+                "    pattern = re.compile(r'^[0-9+\\-*/%(). ]+$')",
+                "    return pattern.match(expression) is not None",
+                "",
+                "def lambda_handler(event, context):",
+                "    try:",
+                "        expression = event['ResourceProperties']['Expression']",
+                "        if not is_valid_expression(expression):",
+                "            raise ValueError('Invalid characters in expression')",
+                "        result = eval(expression)",
+                "        cfnresponse.send(event, context, cfnresponse.SUCCESS, {'Value': result})",
+                "    except Exception as e:",
+                "        cfnresponse.send(event, context, cfnresponse.FAILED, {'Message': str(e)})"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "CalculateMJSEndPort": {
+      "Type": "Custom::CalculateMJSEndPort",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CalculatorLambda",
+            "Arn"
+          ]
+        },
+        "Expression": {
+          "Fn::Sub": "27350 + 7 + (${NumWorkersPerNode} * 4)"
+        }
+      }
+    },
+    "CalculateHeadnodeTimeoutInHour": {
+      "Type": "Custom::CalculateHeadnodeTimeoutInHour",
+      "Condition": "RestoreFromSnapshot",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::Sub": "${CalculatorLambda.Arn}"
+        },
+        "Expression": {
+          "Fn::Sub": "1 + (((${SharedEBSVolumeSize} - 100) - ((${SharedEBSVolumeSize}-100) % 450)) // 450)"
+        }
+      }
+    }
+  },
+  "Parameters": {
+    "VPC": {
+      "Description": "ID of an existing VPC in which to deploy this stack.",
+      "Type": "AWS::EC2::VPC::Id",
+      "ConstraintDescription": "Must be the ID of an existing VPC.",
+      "AllowedPattern": ".+"
+    },
+    "Subnets": {
+      "Description": "List of existing public subnets IDs for the head node and workers.",
+      "Type": "List<AWS::EC2::Subnet::Id>",
+      "ConstraintDescription": "Must be the ID of existing public subnets within the chosen VPC.",
+      "AllowedPattern": ".+"
+    },
+    "ClientIPAddress": {
+      "Description": "Comma-separated list of IP address ranges that will be allowed to connect to the cluster. Each IP CIDR should be formatted as <ip_address>/<mask>. The mask determines the number of IP addresses to include. A mask of 32 is a single IP address. Example of allowed values: 10.0.0.1/32 or 10.0.0.0/16,192.34.56.78/32. This calculator can be used to build a specific range: https://www.ipaddressguide.com/cidr. You may need to contact your IT administrator to determine which address is appropriate.",
+      "Type": "String",
+      "MinLength": "9",
+      "MaxLength": "189",
+      "AllowedPattern": "^((\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2}))(,((\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2}))){0,9}$",
+      "ConstraintDescription": "Must be a comma-separated list of valid IP CIDR ranges of the form x.x.x.x/x. A maximum of 10 such IP CIDRs are allowed in the list."
+    },
+    "SSHKeyName": {
+      "Description": "Name of an existing EC2 KeyPair to allow SSH access to all the instances. See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html for details on creating these.",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "ConstraintDescription": "Must be the name of an existing EC2 KeyPair.",
+      "AllowedPattern": ".+"
+    },
+    "ClusterName": {
+      "Description": "Name to use for this cluster. This name is shown in MATLAB as the cluster profile name.",
+      "Type": "String",
+      "AllowedPattern": "[A-Za-z][A-Za-z0-9 _]+",
+      "ConstraintDescription": "Must only include alphanumeric characters, spaces and underscore and cannot start with a space or number."
+    },
+    "HeadnodeInstanceType": {
+      "Description": "AWS instance type to use for the head node, which runs the job manager. No workers start on this node, so this can be a smaller instance type than the worker nodes. By default, the heap memory for the job manager is set between 1024 MiB and a maximum of half of the instance memory, depending on the total number of MATLAB workers. See https://aws.amazon.com/ec2/instance-types for a list of instance types. Must be available in the Availability Zone of the first subnet in the configured list.",
+      "Default": "t3.medium",
+      "Type": "String",
+      "MinLength": 1,
+      "ConstraintDescription": "The headnode instance type must be specified."
+    },
+    "InstanceAmiCustom": {
+      "Default": "",
+      "Description": "ID of a custom Amazon Machine Image (AMI) in the target region (optional). Ensure that the custom machine image is compatible with the provided CloudFormation template. The ID should start with 'ami-'.",
+      "Type": "String"
+    },
+    "EnableSharedFS": {
+      "Description": "Option indicating what type of shared storage to use for the cluster. This storage is shared among all worker nodes and persists between cluster runs. You can choose between two types of persisted storage: Elastic File System (EFS) or Elastic Block Store (EBS). For more information, see https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws.",
+      "Type": "String",
+      "AllowedValues": [
+        "EFS",
+        "EBS",
+        "No"
+      ],
+      "Default": "No"
+    },
+    "SharedEBSVolumeSize": {
+      "Description": "Size in GiB of the shared EBS volume containing MATLAB Job Scheduler and user data. All job and task information, including input and output data, is stored on this volume and should therefore have enough capacity to store the expected amount of data.",
+      "Type": "Number",
+      "Default": "100",
+      "MinValue": "32",
+      "ConstraintDescription": "Size must be at least 32 GiB."
+    },
+    "WorkerInstanceType": {
+      "Description": "AWS instance type to use for the workers. By default, the heap memory for all worker process is set between 1024 MiB and a maximum of a quarter of the instance memory, depending on the number of MATLAB workers on the instance. See https://aws.amazon.com/ec2/instance-types for a list of instance types.",
+      "Default": "c5.xlarge",
+      "Type": "String",
+      "MinLength": 1,
+      "ConstraintDescription": "The worker instance type must be specified."
+    },
+    "UseSpotInstancesForWorkers": {
+      "Description": "Option indicating whether to enable AWS Spot instances for worker nodes. For more information, refer to the FAQ section in the deployment README.",
+      "Type": "String",
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No"
+    },
+    "NumWorkerNodes": {
+      "Description": "Number of AWS instances to start for the workers to run on.",
+      "Type": "Number",
+      "Default": "2",
+      "MinValue": "0"
+    },
+    "MinWorkerNodes": {
+      "Description": "Minimum number of AWS instances running at all times.",
+      "Type": "Number",
+      "Default": "0",
+      "MinValue": "0"
+    },
+    "MaxWorkerNodes": {
+      "Description": "Maximum number of AWS instances running at all times.",
+      "Type": "Number",
+      "Default": "4",
+      "MinValue": "0"
+    },
+    "NumWorkersPerNode": {
+      "Description": "Number of MATLAB workers to start on each instance. Specify 1 worker per physical core (1 worker for every 2 vCPU). For example an m4.16xlarge instance has 64 vCPUs, so can support 32 MATLAB workers. See https://aws.amazon.com/ec2/instance-types for details on vCPUs for each instance type.",
+      "Type": "Number",
+      "Default": "2",
+      "MinValue": "1"
+    },
+    "ClusterLogLevel": {
+      "Description": "Log level controls the amount of detail in the logs generated by MJS, ranging from '0-Off' (no logging aside from essential system messages) to '6-Highest' (full debug mode). To diagnose any cluster issues with support engineers, increase the log level. Log levels above '3-Medium' can reduce performance.",
+      "Type": "String",
+      "Default": "2-Low",
+      "AllowedValues": [
+        "0-Off",
+        "1-Lowest",
+        "2-Low",
+        "3-Medium",
+        "4-Medium-High",
+        "5-High",
+        "6-Highest"
+      ]
+    },
+    "LicenseManager": {
+      "Description": "Optional License Manager for MATLAB, specified as a string in the form <port>@<hostname>. If not specified, use online licensing. If specified, the network license manager (NLM) must be accessible from the specified VPC and subnets. To use the private hostname of the NLM host instead of the public hostname, specify the security group ID of the NLM host in the AdditionalSecurityGroup parameter. For more information, see https://github.com/mathworks-ref-arch/license-manager-for-matlab-on-aws.",
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "([0-9]+@[a-zA-Z0-9.\\-]+)?",
+      "ConstraintDescription": "If specified, must be in the form <port>@<hostname>"
+    },
+    "EnableCloudWatch": {
+      "Description": "Flag indicating whether cloudwatch logging for the MATLAB Parallel Server instances is enabled.",
+      "Type": "String",
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No"
+    },
+    "AdditionalSecurityGroup": {
+      "Description": "ID of an additional (optional) Security Group for the instances to be placed in. Often the License Manager for MATLAB's Security Group.",
+      "Type": "String",
+      "Default": ""
+    },
+    "MJSSecurityLevel": {
+      "Description": "Security level for the cluster. Level 0: Any user can access any jobs and tasks. Level 1: Accessing other users' jobs and tasks issues a warning. However, all users can still perform all actions. Level 2: Users must enter a password to access their jobs and tasks. The job owner can grant access to other users.",
+      "Type": "String",
+      "AllowedValues": [
+        "0",
+        "1",
+        "2"
+      ],
+      "Default": "0"
+    },
+    "EnableAutoscaling": {
+      "Description": "Flag indicating whether instance autoscaling is enabled. For more information about autoscaling, refer to the Use Autoscaling section in the deployment README.",
+      "Type": "String",
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No"
+    },
+    "AutomaticallyTerminateCluster": {
+      "Description": "Option to auto-terminate the cluster after a few hours or when idle. When the cluster is terminated, all worker nodes are deleted and the headnode is stopped. Select 'Never' to disable auto-termination now but you can enable it later. Select 'Disable auto-termination' to fully disable this feature. For more information, refer to 'Automatically terminate the MATLAB Parallel Server cluster' section in the deployment README.",
+      "Type": "String",
+      "AllowedValues": [
+        "Disable auto-termination",
+        "Never",
+        "When cluster is idle",
+        "After 1 hour",
+        "After 2 hours",
+        "After 3 hours",
+        "After 4 hours",
+        "After 5 hours",
+        "After 6 hours",
+        "After 7 hours",
+        "After 8 hours",
+        "After 9 hours",
+        "After 10 hours",
+        "After 11 hours",
+        "After 12 hours",
+        "After 13 hours",
+        "After 14 hours",
+        "After 15 hours",
+        "After 16 hours",
+        "After 17 hours",
+        "After 18 hours",
+        "After 19 hours",
+        "After 20 hours",
+        "After 21 hours",
+        "After 22 hours",
+        "After 23 hours",
+        "After 24 hours"
+      ],
+      "Default": "Disable auto-termination"
+    },
+    "MJSSchedulingAlgorithm": {
+      "Description": "Scheduling algorithm for the job manager. 'standard' spreads communicating jobs across as few worker machines as possible to reduce communication overheads and fills in unused spaces on worker machines with independent jobs. Suitable for good behaviour for a wide range of uses including autoscaling. 'loadBalancing' distributes load evenly across the cluster to give as many resources as possible to running jobs and tasks when the cluster is underutilized.",
+      "Type": "String",
+      "AllowedValues": [
+        "standard",
+        "loadBalancing"
+      ],
+      "Default": "standard"
+    },
+    "SnapshotOnStackDeletion": {
+      "Description": "(Optional) Select 'Yes' to create an EBS snapshot with the MATLAB Job Scheduler database when you delete the stack. If you have enabled EBS shared storage, this data will also be included. Note that this incurs additional AWS costs. For more information, refer to the FAQ section in the deployment README.",
+      "Type": "String",
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No"
+    },
+    "SnapshotTag": {
+      "Description": "(Optional) Custom tag value to help you identify the EBS snapshot created during stack deletion. Applicable only if you enable creating an EBS snapshot on deletion. Tag key is 'mw-ConfigId'.",
+      "Type": "String",
+      "Default": "",
+      "MaxLength": "256"
+    },
+    "PreviousDataSnapshotId": {
+      "Description": "(Optional) ID of the EBS snapshot to restore MATLAB Job Scheduler data from a previous cluster. Ensure to use the same 'Cluster name' and MATLAB version as your previous cluster. The snapshot must be in the same region as your current deployment. To deploy a new cluster without restoring any data, leave this field blank. For further details, refer to the FAQ section in the deployment README.",
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "^$|^snap-[0-9a-fA-F]{8,17}$",
+      "ConstraintDescription": "Must be a valid EBS snapshot ID (e.g., snap-12345678) or left blank."
+    },
+    "OptionalUserCommand": {
+      "Description": "Provide an optional inline shell command to run on machine launch. For example, to set an environment variable CLOUD=AWS, use this command excluding the angle brackets: <echo -e \"export CLOUD=AWS\" | tee -a /etc/profile.d/setenvvar.sh>. To run an external script, use this command excluding the angle brackets: <wget -O /tmp/my-script.sh \"https://example.com/script.sh\" && bash /tmp/my-script.sh>. Find the logs at '/var/log/mathworks/user-data.log' and '/var/log/mathworks/startup.log'.",
+      "Type": "String",
+      "Default": ""
+    }
+  },
+  "Rules": {
+    "SubnetsInVPC": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::EachMemberEquals": [
+              {
+                "Fn::ValueOfAll": [
+                  "AWS::EC2::Subnet::Id",
+                  "VpcId"
+                ]
+              },
+              {
+                "Ref": "VPC"
+              }
+            ]
+          },
+          "AssertDescription": "All subnets must exist in the VPC you have selected."
+        }
+      ]
+    }
+  },
+  "Conditions": {
+    "OverrideAmi": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "InstanceAmiCustom"
+            },
+            ""
+          ]
+        }
+      ]
+    },
+    "AddSG": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AdditionalSecurityGroup"
+            },
+            ""
+          ]
+        }
+      ]
+    },
+    "UseCloudWatch": {
+      "Fn::Equals": [
+        "Yes",
+        {
+          "Ref": "EnableCloudWatch"
+        }
+      ]
+    },
+    "UseScaleInProtection": {
+      "Fn::Equals": [
+        "Yes",
+        {
+          "Ref": "EnableAutoscaling"
+        }
+      ]
+    },
+    "UseSpotInstances": {
+      "Fn::Equals": [
+        "Yes",
+        {
+          "Ref": "UseSpotInstancesForWorkers"
+        }
+      ]
+    },
+    "UseSharedEFSStorage": {
+      "Fn::Equals": [
+        "EFS",
+        {
+          "Ref": "EnableSharedFS"
+        }
+      ]
+    },
+    "CreateSnapshotOnStackDeletion": {
+      "Fn::Equals": [
+        "Yes",
+        {
+          "Ref": "SnapshotOnStackDeletion"
+        }
+      ]
+    },
+    "RestoreFromSnapshot": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "PreviousDataSnapshotId"
+            },
+            ""
+          ]
+        }
+      ]
+    }
+  },
+  "Outputs": {
+    "HeadnodeInstanceId": {
+      "Description": "Instance ID of the headnode",
+      "Value": {
+        "Ref": "Headnode"
+      }
+    },
+    "HeadnodePublicDNS": {
+      "Description": "Public DNSName of the newly created EC2 instance",
+      "Value": {
+        "Fn::GetAtt": [
+          "Headnode",
+          "PublicDnsName"
+        ]
+      }
+    },
+    "S3Bucket": {
+      "Value": {
+        "Fn::GetAtt": [
+          "MWStorage",
+          "Outputs.BucketName"
+        ]
+      },
+      "Description": "The name of the S3 bucket the profile has been saved to"
+    },
+    "ProfileName": {
+      "Value": {
+        "Fn::Sub": "${ClusterName}.mlsettings"
+      },
+      "Description": "The name of the profile"
+    },
+    "BucketURL": {
+      "Value": {
+        "Fn::Sub": [
+          "https://s3.console.aws.amazon.com/s3/buckets/${BucketName}?region=${AWS::Region}",
+          {
+            "BucketName": {
+              "Fn::GetAtt": [
+                "MWStorage",
+                "Outputs.BucketName"
+              ]
+            }
+          }
+        ]
+      },
+      "Description": "The URL of the S3 bucket in the AWS console that contains the profile"
+    },
+    "CloudWatchLogs": {
+      "Condition": "UseCloudWatch",
+      "Description": "Cloudwatch log group containing log data for the MATLAB Parallel Server cluster",
+      "Value": {
+        "Fn::Sub": [
+          "https://console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#logsV2:log-groups/log-group/${LogGroupName}",
+          {
+            "LogGroupName": {
+              "Fn::GetAtt": [
+                "MWLogLocation",
+                "Outputs.LogGroupName"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "CloudWatchMetrics": {
+      "Condition": "UseCloudWatch",
+      "Description": "Cloudwatch metrics containing metric data for the MATLAB Parallel Server cluster",
+      "Value": {
+        "Fn::Sub": [
+          "https://console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#metricsV2:graph=~();namespace=~'${LogGroupName}",
+          {
+            "LogGroupName": {
+              "Fn::GetAtt": [
+                "MWLogLocation",
+                "Outputs.LogGroupName"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ASGName": {
+      "Value": {
+        "Ref": "ClusterScalingGroup"
+      },
+      "Description": "Auto Scaling Group Name"
+    },
+    "SharedEFSName": {
+      "Condition": "UseSharedEFSStorage",
+      "Value": {
+        "Ref": "EFSFileSystem"
+      },
+      "Description": "Elastic File System Name"
+    }
+  },
+  "Metadata": {
+    "StackType": "MJS",
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": {
+            "default": "MATLAB Job Scheduler Configuration"
+          },
+          "Parameters": [
+            "ClusterName",
+            "NumWorkerNodes",
+            "MinWorkerNodes",
+            "MaxWorkerNodes",
+            "NumWorkersPerNode",
+            "ClusterLogLevel"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Amazon EC2 Configuration"
+          },
+          "Parameters": [
+            "HeadnodeInstanceType",
+            "WorkerInstanceType",
+            "UseSpotInstancesForWorkers",
+            "SSHKeyName"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Storage Configuration"
+          },
+          "Parameters": [
+            "EnableSharedFS",
+            "SharedEBSVolumeSize",
+            "SnapshotOnStackDeletion",
+            "SnapshotTag",
+            "PreviousDataSnapshotId"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Network Configuration"
+          },
+          "Parameters": [
+            "VPC",
+            "Subnets",
+            "ClientIPAddress",
+            "AdditionalSecurityGroup"
+          ]
+        },
+        {
+          "Label": {
+            "default": "License Configuration"
+          },
+          "Parameters": [
+            "LicenseManager"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Logging Configuration"
+          },
+          "Parameters": [
+            "EnableCloudWatch"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Additional MJS Configuration"
+          },
+          "Parameters": [
+            "MJSSecurityLevel",
+            "EnableAutoscaling",
+            "AutomaticallyTerminateCluster",
+            "MJSSchedulingAlgorithm"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Optional User Command"
+          },
+          "Parameters": [
+            "OptionalUserCommand"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Custom AMI"
+          },
+          "Parameters": [
+            "InstanceAmiCustom"
+          ]
+        }
+      ],
+      "ParameterLabels": {
+        "ClusterName": {
+          "default": "Cluster name"
+        },
+        "NumWorkerNodes": {
+          "default": "Number of worker nodes"
+        },
+        "MinWorkerNodes": {
+          "default": "Minimum number of worker nodes"
+        },
+        "MaxWorkerNodes": {
+          "default": "Maximum number of worker nodes"
+        },
+        "NumWorkersPerNode": {
+          "default": "Number of workers to start on each node"
+        },
+        "ClusterLogLevel": {
+          "default": "Level of logs to be generated by MJS"
+        },
+        "EnableSharedFS": {
+          "default": "Enable shared storage across cluster"
+        },
+        "SharedEBSVolumeSize": {
+          "default": "Storage size for the MATLAB Job Scheduler database and shared storage"
+        },
+        "HeadnodeInstanceType": {
+          "default": "Instance type for the head node"
+        },
+        "WorkerInstanceType": {
+          "default": "Instance type for the worker nodes"
+        },
+        "SSHKeyName": {
+          "default": "Name of SSH key"
+        },
+        "ClientIPAddress": {
+          "default": "CIDR IP address range of client"
+        },
+        "VPC": {
+          "default": "VPC to deploy this stack to"
+        },
+        "Subnets": {
+          "default": "Subnets for the head node and worker nodes"
+        },
+        "LicenseManager": {
+          "default": "License Manager for MATLAB connection string"
+        },
+        "AdditionalSecurityGroup": {
+          "default": "Additional security group to place instances in"
+        },
+        "EnableCloudWatch": {
+          "default": "Configure cloudwatch logging for the MATLAB Parallel Server instances"
+        },
+        "EnableAutoscaling": {
+          "default": "Enable instance autoscaling"
+        },
+        "MJSSchedulingAlgorithm": {
+          "default": "Scheduling algorithm"
+        },
+        "MJSSecurityLevel": {
+          "default": "Security level"
+        },
+        "OptionalUserCommand": {
+          "default": "Optional user inline command"
+        },
+        "InstanceAmiCustom": {
+          "default": "Custom AMI ID (Optional)"
+        },
+        "UseSpotInstancesForWorkers": {
+          "default": "Use Spot Instances for worker nodes"
+        },
+        "SnapshotOnStackDeletion": {
+          "default": "Create EBS Snapshot on Stack Deletion"
+        },
+        "SnapshotTag": {
+          "default": "Custom Tag for Snapshot"
+        },
+        "PreviousDataSnapshotId": {
+          "default": "EBS Snapshot ID"
+        }
+      }
+    }
+  }
+}
