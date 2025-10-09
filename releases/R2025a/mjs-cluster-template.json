@@ -3,58 +3,58 @@
   "Mappings": {
     "RegionMap": {
       "us-east-1": {
-        "AMI": "ami-03a5e877438139f6e"
-      },
-      "us-east-2": {
-        "AMI": "ami-0f4f00b46e9e45b38"
-      },
-      "us-west-1": {
-        "AMI": "ami-095e9cd6d753e04d1"
+        "AMI": "ami-096aa11e95ba97a78"
       },
       "us-west-2": {
-        "AMI": "ami-0f48f8225a3f9899e"
-      },
-      "ca-central-1": {
-        "AMI": "ami-08f0996296df65392"
-      },
-      "eu-central-1": {
-        "AMI": "ami-0ea5ed1362837d027"
+        "AMI": "ami-00fb2ced9845d4ce1"
       },
       "eu-west-1": {
-        "AMI": "ami-0ce0de6e65a17b581"
-      },
-      "eu-west-2": {
-        "AMI": "ami-02153bb9a300a8fe3"
-      },
-      "eu-west-3": {
-        "AMI": "ami-07d6898bb9f117b61"
-      },
-      "eu-north-1": {
-        "AMI": "ami-00e50c412060ef509"
-      },
-      "sa-east-1": {
-        "AMI": "ami-0e02049bd09bfcc3d"
-      },
-      "me-south-1": {
-        "AMI": "ami-06f50e6e218363e8f"
-      },
-      "ap-east-1": {
-        "AMI": "ami-0a3da77fc77ffe5b6"
-      },
-      "ap-south-1": {
-        "AMI": "ami-08f336fa978921f78"
+        "AMI": "ami-01d23a6401c84109b"
       },
       "ap-northeast-1": {
-        "AMI": "ami-073fd20894de40ace"
+        "AMI": "ami-049085103b54c9eff"
+      },
+      "us-east-2": {
+        "AMI": "Enter the ID of a custom AMI in this region."
+      },
+      "us-west-1": {
+        "AMI": "Enter the ID of a custom AMI in this region."
+      },
+      "ca-central-1": {
+        "AMI": "Enter the ID of a custom AMI in this region."
+      },
+      "eu-central-1": {
+        "AMI": "Enter the ID of a custom AMI in this region."
+      },
+      "eu-west-2": {
+        "AMI": "Enter the ID of a custom AMI in this region."
+      },
+      "eu-west-3": {
+        "AMI": "Enter the ID of a custom AMI in this region."
+      },
+      "eu-north-1": {
+        "AMI": "Enter the ID of a custom AMI in this region."
+      },
+      "sa-east-1": {
+        "AMI": "Enter the ID of a custom AMI in this region."
+      },
+      "me-south-1": {
+        "AMI": "Enter the ID of a custom AMI in this region."
+      },
+      "ap-east-1": {
+        "AMI": "Enter the ID of a custom AMI in this region."
+      },
+      "ap-south-1": {
+        "AMI": "Enter the ID of a custom AMI in this region."
       },
       "ap-northeast-2": {
-        "AMI": "ami-089d0b683ab483d0a"
+        "AMI": "Enter the ID of a custom AMI in this region."
       },
       "ap-southeast-1": {
-        "AMI": "ami-0c47dd1bc384d4ba6"
+        "AMI": "Enter the ID of a custom AMI in this region."
       },
       "ap-southeast-2": {
-        "AMI": "ami-06422b353152e76c0"
+        "AMI": "Enter the ID of a custom AMI in this region."
       }
     }
   },
@@ -118,7 +118,7 @@
             "Ref": "Headnode"
           },
           "VolumeDeviceName": "/dev/sdh",
-          "PreSnapshotCommand": "{{AWS-RunShellScript}}/mnt/matlab/toolbox/parallel/bin/mjs stop -cleanPreserveJobs",
+          "PreSnapshotCommand": "{{AWS-RunShellScript}}/usr/local/matlab/toolbox/parallel/bin/mjs stop -cleanPreserveJobs",
           "Tags": {
             "Fn::Sub": "Name=MW-MATLABParallelServer-${ClusterName},mw-ConfigId=${SnapshotTag},mw-CreatedFromStack=${AWS::StackName},mw-ProductId=MATLABParallelServer,mw-CreatedFromStackId=${AWS::StackId},mw-ClusterName=${ClusterName}"
           },
