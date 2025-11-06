@@ -1,0 +1,21 @@
+{
+    "description": "This is a data file to record the configuration and state of the Cluster management program and should not be modified manually.",
+    "config": {
+      "autoscaling_enabled": true,
+      "autotermination_enabled": true,
+      "initial_termination_policy": "",
+      "initial_desired_capacity": "",
+      "mjs_status_log_file": "/var/log/mathworks/mjs_status_transitions.log"
+    },
+    "state": {
+      "was_mjs_busy": false,
+      "last_termination_policy": "",
+      "min_nodes_pre_termination": "",
+      "cluster_ready_for_termination": false,
+      "first_run_after_reboot": false,
+      "last_os_boot_time": "",
+      "cluster_auto_terminated": true,
+      "mw_state_counter": "0",
+      "mw_state_set": false
+    }
+  }

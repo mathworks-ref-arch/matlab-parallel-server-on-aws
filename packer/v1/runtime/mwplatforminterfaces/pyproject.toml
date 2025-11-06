@@ -1,0 +1,19 @@
+# Copyright 2024-2025 The MathWorks, Inc.
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mwplatforminterfaces"
+version = "0.0.3"
+dependencies = [
+    "boto3",
+    "requests",
+    "psutil"
+]
+authors = [
+    { "name" = "The MathWorks, Inc." }
+]
+
+[tool.setuptools]

@@ -1,0 +1,13 @@
+# Copyright 2024-2025 The MathWorks, Inc.
+[Unit]
+# This service handles autoscaling and executes termination policies, if any active.
+Description=Cluster management service for MATLAB Parallel Server
+After=network.target
+Wants=clustermanagement.timer
+
+[Service]
+Type=oneshot
+ExecStart=/opt/mathworks/cluster_management/cluster_management.py
+
+[Install]
+WantedBy=default.target

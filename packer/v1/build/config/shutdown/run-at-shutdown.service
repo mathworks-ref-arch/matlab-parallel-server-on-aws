@@ -1,0 +1,16 @@
+# Copyright 2024-2025 The MathWorks, Inc.
+[Unit]
+Description=Run custom scripts at shutdown
+Wants=network.target
+After=syslog.service network.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/true
+ExecStop=/opt/mathworks/run-at-shutdown-scripts.sh
+Restart=on-failure
+RestartSec=3s
+
+[Install]
+WantedBy=multi-user.target

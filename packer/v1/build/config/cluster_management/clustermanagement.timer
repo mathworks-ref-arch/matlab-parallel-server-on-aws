@@ -1,0 +1,12 @@
+# Copyright 2024-2025 The MathWorks, Inc.
+[Unit]
+Description=Timer to trigger the MATLAB Parallel Server Cluster Management Service every minute in the headnode
+Requires=clustermanagement.service
+
+[Timer]
+Unit=clustermanagement.service
+OnCalendar=*-*-* *:*:00
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

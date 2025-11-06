@@ -1,0 +1,12 @@
+# Copyright 2024-2025 The MathWorks, Inc.
+[Unit]
+Description=Spot Instance Monitoring service for MATLAB Parallel Server
+After=network.target
+Wants=spotinstances.timer
+
+[Service]
+Type=oneshot
+ExecStart=/opt/mathworks/spotinstances/handle_instance_interruption.py
+
+[Install]
+WantedBy=default.target

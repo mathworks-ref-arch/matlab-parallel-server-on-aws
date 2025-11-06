@@ -1,0 +1,25 @@
+# Copyright 2023-2025 The MathWorks, Inc.
+
+// Use this Packer configuration file to build AMI with R2021b MATLAB Parallel Server and related toolboxes installed.
+// For more information on these variables, see /packer/v1/build-parallel-server-ami.pkr.hcl.
+RELEASE                 = "R2021b"
+BASE_AMI_NAME           = "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"
+STARTUP_SCRIPTS         = [".env","10_setup-disks.sh", "20_optimize-gpu.sh", "30_setup-logging.sh", "40_setup-matlab.sh", "50_warmup-matlab.sh", "60_edit-mjs-def.sh", "70_sync-mjs-files.sh", "80_start-mjs.sh", "90_add-spot-instance-monitoring.sh", "95_setup-clustermanagement-program.sh"]
+RUNTIME_SCRIPTS         = ["cluster_management", "mwplatforminterfaces", "spotinstances"]
+BUILD_SCRIPTS           = ["create-cloud-user.sh",
+                           "install-runtime-scripts.sh",
+                           "install-startup-scripts.sh",
+                           "install-dependencies.sh",
+                           "install-glibc-ubuntu2004.sh",
+                           "install-shutdown-scripts.sh",
+                           "install-matlab-dependencies-ubuntu.sh",
+                           "install-matlab.sh",
+                           "install-polyspace.sh",
+                           "setup-startup-accelerator.sh",
+                           "cleanup.sh"]
+PRODUCTS                = "5G_Toolbox Antenna_Toolbox Aerospace_Blockset Mixed-Signal_Blockset Phased_Array_System_Toolbox AUTOSAR_Blockset Aerospace_Toolbox Audio_Toolbox Bioinformatics_Toolbox Curve_Fitting_Toolbox Communications_Toolbox MATLAB_Compiler Control_System_Toolbox Simulink_Coverage Database_Toolbox DDS_Blockset Datafeed_Toolbox Deep_Learning_HDL_Toolbox Parallel_Computing_Toolbox MATLAB_Parallel_Server Automated_Driving_Toolbox DSP_System_Toolbox Simulink_Design_Verifier Embedded_Coder HDL_Verifier Econometrics_Toolbox Filter_Design_HDL_Coder Financial_Toolbox Fuzzy_Logic_Toolbox GPU_Coder Global_Optimization_Toolbox HDL_Coder SoC_Blockset Image_Acquisition_Toolbox Instrument_Control_Toolbox System_Identification_Toolbox Image_Processing_Toolbox Financial_Instruments_Toolbox Simscape_Driveline Wireless_HDL_Toolbox Lidar_Toolbox LTE_Toolbox MATLAB_Coder Mapping_Toolbox MATLAB_Compiler_SDK MATLAB Model_Predictive_Control_Toolbox MATLAB_Report_Generator Simscape_Multibody Motor_Control_Blockset MATLAB_Web_App_Server Deep_Learning_Toolbox Navigation_Toolbox Optimization_Toolbox Partial_Differential_Equation_Toolbox Simulink_PLC_Coder Predictive_Maintenance_Toolbox Fixed-Point_Designer MATLAB_Production_Server Simscape_Electrical Powertrain_Blockset Radar_Toolbox RF_Blockset Robust_Control_Toolbox RF_Toolbox Risk_Management_Toolbox Reinforcement_Learning_Toolbox Robotics_System_Toolbox RF_PCB_Toolbox Simulink_Requirements ROS_Toolbox Simulink_Coder SimBiology Simulink_Control_Design SimEvents Stateflow Signal_Processing_Toolbox Simscape_Fluids Satellite_Communications_Toolbox Simulink_Compiler Simulink Symbolic_Math_Toolbox Simulink_Design_Optimization Signal_Integrity_Toolbox Simulink_Report_Generator Simscape Statistics_and_Machine_Learning_Toolbox SerDes_Toolbox Simulink_Test Text_Analytics_Toolbox Sensor_Fusion_and_Tracking_Toolbox UAV_Toolbox Vehicle_Dynamics_Blockset Vehicle_Network_Toolbox Computer_Vision_Toolbox Simulink_3D_Animation Vision_HDL_Toolbox Simulink_Check Wavelet_Toolbox WLAN_Toolbox System_Composer"
+POLYSPACE_PRODUCTS      = "Polyspace_Bug_Finder_Server Polyspace_Code_Prover_Server"
+SPKGS                   = "Deep_Learning_Toolbox_Model_for_AlexNet_Network Deep_Learning_Toolbox_Model_for_EfficientNet-b0_Network Deep_Learning_Toolbox_Model_for_GoogLeNet_Network Deep_Learning_Toolbox_Model_for_ResNet-101_Network Deep_Learning_Toolbox_Model_for_ResNet-18_Network Deep_Learning_Toolbox_Model_for_ResNet-50_Network Deep_Learning_Toolbox_Model_for_Inception-ResNet-v2_Network Deep_Learning_Toolbox_Model_for_Inception-v3_Network Deep_Learning_Toolbox_Model_for_DenseNet-201_Network Deep_Learning_Toolbox_Model_for_Xception_Network Deep_Learning_Toolbox_Model_for_MobileNet-v2_Network Deep_Learning_Toolbox_Model_for_Places365-GoogLeNet_Network Deep_Learning_Toolbox_Model_for_NASNet-Large_Network Deep_Learning_Toolbox_Model_for_NASNet-Mobile_Network Deep_Learning_Toolbox_Model_for_ShuffleNet_Network Deep_Learning_Toolbox_Model_for_DarkNet-19_Network Deep_Learning_Toolbox_Model_for_DarkNet-53_Network Deep_Learning_Toolbox_Model_for_VGG-16_Network Deep_Learning_Toolbox_Model_for_VGG-19_Network"
+NVIDIA_CUDA_TOOLKIT     = ""
+NVIDIA_CUDA_KEYRING_URL = "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb"
+NVIDIA_DRIVER_VERSION   = ""

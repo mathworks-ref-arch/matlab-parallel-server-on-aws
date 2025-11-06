@@ -1,0 +1,337 @@
+# Copyright 2025 The MathWorks, Inc.
+
+packer {
+  required_plugins {
+    amazon = {
+      source  = "github.com/hashicorp/amazon"
+      version = "~> 1"
+    }
+  }
+}
+
+# The following variables may have different value across releases and 
+# it is recommended to modify them via the release-specific configuration file.
+# To learn the release-specific values, visit the configuration file
+# under /packer/v1/release-config/ folder.
+
+variable "PRODUCTS" {
+  type        = string
+  default     = "5G_Toolbox AUTOSAR_Blockset Aerospace_Blockset Aerospace_Toolbox Antenna_Toolbox Audio_Toolbox Automated_Driving_Toolbox Bioinformatics_Toolbox Bluetooth_Toolbox C2000_Microcontroller_Blockset Communications_Toolbox Computer_Vision_Toolbox Control_System_Toolbox Curve_Fitting_Toolbox DDS_Blockset DSP_HDL_Toolbox DSP_System_Toolbox Database_Toolbox Datafeed_Toolbox Deep_Learning_HDL_Toolbox Deep_Learning_Toolbox Econometrics_Toolbox Embedded_Coder Financial_Instruments_Toolbox Financial_Toolbox Fixed-Point_Designer Fuzzy_Logic_Toolbox GPU_Coder Global_Optimization_Toolbox HDL_Coder HDL_Verifier Image_Acquisition_Toolbox Image_Processing_Toolbox Industrial_Communication_Toolbox Instrument_Control_Toolbox LTE_Toolbox Lidar_Toolbox MATLAB MATLAB_Coder MATLAB_Compiler MATLAB_Compiler_SDK MATLAB_Parallel_Server MATLAB_Production_Server MATLAB_Report_Generator MATLAB_Test MATLAB_Web_App_Server Mapping_Toolbox Medical_Imaging_Toolbox Mixed-Signal_Blockset Model_Predictive_Control_Toolbox Motor_Control_Blockset Navigation_Toolbox Optimization_Toolbox Parallel_Computing_Toolbox Partial_Differential_Equation_Toolbox Phased_Array_System_Toolbox Powertrain_Blockset Predictive_Maintenance_Toolbox RF_Blockset RF_PCB_Toolbox RF_Toolbox ROS_Toolbox Radar_Toolbox Reinforcement_Learning_Toolbox Requirements_Toolbox Risk_Management_Toolbox Robotics_System_Toolbox Robust_Control_Toolbox Satellite_Communications_Toolbox Sensor_Fusion_and_Tracking_Toolbox SerDes_Toolbox Signal_Integrity_Toolbox Signal_Processing_Toolbox SimBiology SimEvents Simscape Simscape_Battery Simscape_Driveline Simscape_Electrical Simscape_Fluids Simscape_Multibody Simulink Simulink_3D_Animation Simulink_Check Simulink_Coder Simulink_Compiler Simulink_Control_Design Simulink_Coverage Simulink_Design_Optimization Simulink_Design_Verifier Simulink_Desktop_Real-Time Simulink_Fault_Analyzer Simulink_PLC_Coder Simulink_Real-Time Simulink_Report_Generator Simulink_Test SoC_Blockset Stateflow Statistics_and_Machine_Learning_Toolbox Symbolic_Math_Toolbox System_Composer System_Identification_Toolbox Text_Analytics_Toolbox UAV_Toolbox Vehicle_Dynamics_Blockset Vehicle_Network_Toolbox Vision_HDL_Toolbox WLAN_Toolbox Wavelet_Toolbox Wireless_HDL_Toolbox Wireless_Testbench"
+  description = "Target products to install in the machine image, e.g. MATLAB SIMULINK."
+}
+
+variable "RELEASE" {
+  type        = string
+  default     = "R2025b"
+  description = "Target MATLAB release to install in the machine image, must start with \"R\"."
+
+  validation {
+    condition     = can(regex("^R20[0-9][0-9](a|b)(U[0-9])?$", var.RELEASE))
+    error_message = "The RELEASE value must be a valid MATLAB release, starting with \"R\"."
+  }
+}
+
+variable "BASE_AMI_NAME" {
+  type        = string
+  default     = "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"
+  description = "Default AMI name refers to the Ubuntu Server 22.04 image provided by Canonical."
+}
+
+variable "BUILD_SCRIPTS" {
+  type        = list(string)
+  default     = ["create-cloud-user.sh",
+                 "install-runtime-scripts.sh",
+                 "install-startup-scripts.sh",
+                 "install-shutdown-scripts.sh",
+                 "install-dependencies.sh",
+                 "install-matlab-dependencies-ubuntu.sh",
+                 "install-matlab.sh",
+                 "install-polyspace.sh",
+                 "setup-startup-accelerator.sh",
+                 "cleanup.sh"]
+  description = "The list of installation scripts Packer will use when building the image."
+}
+
+variable "STARTUP_SCRIPTS" {
+  type        = list(string)
+  default     = [".env", "10_setup-disks.sh", "15_setup-shared-storage.sh", "20_optimize-gpu.sh", "30_setup-logging.sh", "35_setup-machine.sh", "40_setup-matlab.sh", "50_warmup-matlab.sh", "60_edit-mjs-def.sh", "70_sync-mjs-files.sh", "80_start-mjs.sh", "90_add-spot-instance-monitoring.sh", "95_setup-clustermanagement-program.sh"]
+  description = "The list of startup scripts Packer will copy to the remote machine image builder, which can be used during the CloudFormation Stack creation."
+}
+
+variable "RUNTIME_SCRIPTS" {
+  type = list(string)
+  default = [ 
+    "cluster_management",
+    "mwplatforminterfaces",
+    "spotinstances",
+    "nfs-share"
+  ]
+  description = "The list of runtime script directories Packer will copy to the remote machine image builder, which can be used after the CloudFormation Stack creation."
+}
+
+variable "CLOUD_USER" {
+  type        = string
+  default     = "clouduser"
+  description = "A regular user with no sudo permissions will be created with this username during Packer build. MJS and related processes will be run as this user to enhance security."
+}
+
+variable "NVIDIA_CUDA_TOOLKIT" {
+  type        = string
+  default     = "https://developer.download.nvidia.com/compute/cuda/12.2.2/local_installers/cuda_12.2.2_535.104.05_linux.run"
+  description = "The URL to install NVIDIA CUDA Toolkit into the target machine image. "
+}
+
+variable "NVIDIA_CUDA_KEYRING_URL" {
+  type        = string
+  default     = "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb"
+  description = "NVIDIA CUDA keyring url."
+}
+
+variable "NVIDIA_DRIVER_VERSION" {
+  type        = string
+  default     = "535"
+  description = "The version of the NVIDIA driver to install."
+}
+
+variable "MATLAB_SOURCE_URL" {
+  type        = string
+  default     = ""
+  description = "Optional URL from which to download a MATLAB and toolbox source file, for use with the mpm --source option."
+}
+
+variable "POLYSPACE_ROOT" {
+  type        = string
+  default     = "/usr/local/polyspace"
+  description = "URL for polyspace root location."
+}
+
+variable "POLYSPACE_PRODUCTS" {
+  type        = string
+  default     = "Polyspace_Bug_Finder_Server Polyspace_Code_Prover_Server"
+  description = "target product names for polyspace."
+}
+
+variable "VPC_ID" {
+  type        = string
+  default     = ""
+  description = "The target AWS VPC to be used by Packer. If not specified, Packer will use default VPC."
+
+  validation {
+    condition     = length(var.VPC_ID) == 0 || substr(var.VPC_ID, 0, 4) == "vpc-"
+    error_message = "The VPC_ID must start with \"vpc-\"."
+  }
+}
+
+variable "SUBNET_ID" {
+  type        = string
+  default     = ""
+  description = "The target subnet to be used by Packer. If not specified, Packer will use the subnet that has the most free IP addresses."
+
+  validation {
+    condition     = length(var.SUBNET_ID) == 0 || substr(var.SUBNET_ID, 0, 7) == "subnet-"
+    error_message = "The SUBNET_ID must start with \"subnet-\"."
+  }
+}
+
+variable "INSTANCE_TAGS" {
+  type = map(string)
+  default = {
+    Name  = "Packer Builder"
+    Build = "MATLAB"
+  }
+  description = "The tags Packer adds to the machine image builder."
+}
+
+variable "AWS_ACCESS_USERS" {
+  type = list(string)
+  default = []
+  description = "List of AWS accounts to share the AMI with."
+}
+
+variable "AWS_INSTANCE_PROFILE" {
+  type = string
+  default = "PackerBuildInstanceProfile"
+  description = "The AWS instance profile role used during Packer builds."
+}
+
+variable "MANIFEST_OUTPUT_FILE" {
+  type        = string
+  default     = "manifest.json"
+  description = "The name of the resultant manifest file."
+}
+
+variable "AMI_TAGS" {
+  type = map(string)
+  default = {
+    image     = "matlab-parallel-server"
+    platform  = "linux"
+    builder   = "packer"
+  }
+}
+
+variable "SSH_INTERFACE" {
+  type         = string
+  default      = "public_ip"
+  description  = "Specifies the network interface address used by Packer for SSH connections. Acceptable values are 'public_ip', 'private_ip', 'public_dns', or 'private_dns'."
+}
+
+variable "SECURITY_GROUP_ID" {
+  type        = string
+  default     = ""
+  description = "The target security group to be used by Packer. If not specified, Packer will create a temporary security group."
+}
+
+variable "TEMP_SG_PUBLIC_IP" {
+  type = bool
+  default = true
+  description = "If true, Packer will authorize SSH access from the host’s public IP (as a CIDR block) in the temporary security group created for the Packer Builder instance. This setting is only used when SECURITY_GROUP_ID is not provided."
+}
+
+variable "SSH_BASTION_HOST" {
+  type        = string
+  default     = ""
+  description = "(Optional) A bastion host to use for the actual SSH connection."
+}
+
+variable "SSH_BASTION_USERNAME" {
+  type        = string
+  default     = ""
+  description = "The username to connect to the bastion host."
+}
+
+variable "SSH_BASTION_PRIVATE_KEY_FILE" {
+  type        = string
+  default     = ""
+  description = "Path to a PEM encoded private key file to use to authenticate with the bastion host."
+}
+
+# Set up local variables used by provisioners.
+locals {
+  timestamp       = regex_replace(timestamp(), "[- TZ:]", "")
+  build_scripts   = [for s in var.BUILD_SCRIPTS : format("build/%s", s)]
+  startup_scripts = [for s in var.STARTUP_SCRIPTS : format("startup/%s", s)]
+  runtime_scripts = [for s in var.RUNTIME_SCRIPTS : format("runtime/%s", s)]
+}
+
+# Configure the EC2 instance that is used to build the machine image.
+source "amazon-ebs" "AMI_Builder" {
+  ami_name = "matlab-parallel-server-${var.RELEASE}-ubuntu-${local.timestamp}"
+  aws_polling {
+    delay_seconds = 30
+    max_attempts  = 300
+  }
+  instance_type = "t3.large"
+  launch_block_device_mappings {
+    device_name           = "/dev/sda1"
+    volume_size           = 128
+    volume_type           = "gp2"
+    delete_on_termination = true
+  }
+  region       = "us-east-1"
+  source_ami_filter {
+    filters = {
+      "virtualization-type" = "hvm"
+      "name"                = "${var.BASE_AMI_NAME}"
+      "root-device-type"    = "ebs"
+    }
+    owners      = ["099720109477"] # Canonical's owner ID https://documentation.ubuntu.com/aws/en/latest/aws-how-to/instances/find-ubuntu-images/
+    most_recent = true
+  }
+  ssh_username = "ubuntu"
+  run_tags     = "${var.INSTANCE_TAGS}"
+  tags         = "${var.AMI_TAGS}"
+  subnet_filter {
+    most_free = true
+    random    = false
+  }
+  vpc_filter {
+    filters = {
+      isDefault = "true"
+    }
+  }
+  iam_instance_profile                      = "${var.AWS_INSTANCE_PROFILE}"
+  ami_users                                 = "${var.AWS_ACCESS_USERS}"
+  snapshot_users                            = "${var.AWS_ACCESS_USERS}"
+
+  ssh_interface                             = "${var.SSH_INTERFACE}"  
+  subnet_id                                 = "${var.SUBNET_ID}"
+  vpc_id                                    = "${var.VPC_ID}"
+  security_group_id                         = "${var.SECURITY_GROUP_ID}"
+  temporary_security_group_source_public_ip = "${var.TEMP_SG_PUBLIC_IP}"
+
+  # The following variables are used to connect to the builder via bastion host,
+  # if values are not present, Packer will connect directly to the builder.
+  ssh_bastion_host             = "${var.SSH_BASTION_HOST}"
+  ssh_bastion_username         = "${var.SSH_BASTION_USERNAME}"
+  ssh_bastion_private_key_file = "${var.SSH_BASTION_PRIVATE_KEY_FILE}"
+}
+
+# Build the machine image.
+build {
+  sources = ["source.amazon-ebs.AMI_Builder"]
+
+  provisioner "shell" {
+    inline = ["/usr/bin/cloud-init status --wait"]
+  }
+
+  provisioner "shell" {
+    inline = ["mkdir /tmp/startup"]
+  }
+
+  provisioner "file" {
+    destination = "/var/tmp/"
+    source      = "build/config"
+  }
+
+  provisioner "file" {
+    destination = "/tmp/startup/"
+    sources     = "${local.startup_scripts}"
+  }
+
+  provisioner "file" {
+      destination = "/tmp/startup/reusable-helper-scripts"
+      source      = "startup/reusable-helper-scripts"
+  }
+
+  provisioner "file" {
+    destination = "/tmp"
+    source      = "shutdown"
+  }
+
+  provisioner "shell" {
+    inline = [for s in local.runtime_scripts : "mkdir -p /tmp/${s}"]
+  }
+
+  provisioner "file" {
+    destination = "/tmp/"
+    source = "runtime"
+  }
+
+  provisioner "shell" {
+    environment_vars = [
+      "RELEASE=${var.RELEASE}",
+      "CLOUD_USER=${var.CLOUD_USER}",
+      "PRODUCTS=${var.PRODUCTS}",
+      "NVIDIA_DRIVER_VERSION=${var.NVIDIA_DRIVER_VERSION}",
+      "NVIDIA_CUDA_TOOLKIT=${var.NVIDIA_CUDA_TOOLKIT}",
+      "NVIDIA_CUDA_KEYRING_URL=${var.NVIDIA_CUDA_KEYRING_URL}",
+      "MATLAB_SOURCE_URL=${var.MATLAB_SOURCE_URL}",
+      "MATLAB_ROOT=/usr/local/matlab",
+      "POLYSPACE_ROOT=${var.POLYSPACE_ROOT}",
+      "POLYSPACE_PRODUCTS=${var.POLYSPACE_PRODUCTS}"
+    ]
+    expect_disconnect = true
+    scripts           = "${local.build_scripts}"
+  }
+
+  post-processor "manifest" {
+    output     = "${var.MANIFEST_OUTPUT_FILE}"
+    strip_path = true
+    custom_data = {
+      release            = "MATLAB ${var.RELEASE}"
+      specified_products = "${var.PRODUCTS}"
+      specified_polyspace_products = "${var.POLYSPACE_PRODUCTS}"
+      build_scripts      = join(", ", "${var.BUILD_SCRIPTS}")
+    }
+  }
+}

@@ -25,6 +25,15 @@ You are responsible for the cost of the AWS services you use when you create clo
 
 # Deployment Steps
 
+By default, the MATLAB Parallel Server reference architectures below launch prebuilt machine images, described in [Learn about Cluster Architecture](#learn-about-cluster-architecture).
+Using a prebuilt machine image is the easiest way to deploy a MATLAB Parallel Server reference architecture.
+Prebuilt images are provided for the five most recent MATLAB releases.
+Alternatively, to build your own machine image,
+see [Build and Deploy Your Own Machine Image](#build-and-deploy-your-own-machine-image).
+You can also use this workflow to install an earlier MATLAB release.
+
+## Deploy Prebuilt Machine Image
+
 To view instructions for deploying the MATLAB Parallel Server reference architecture, select a MATLAB release:
 
 | Linux | Windows |
@@ -44,6 +53,24 @@ To view instructions for deploying the MATLAB Parallel Server reference architec
 | [R2019b](releases/R2019b/README.md) |  |
 | [R2019a\_and\_older](releases/R2019a_and_older/README.md) |  |
 
+
+The above instructions allow you to launch instances based on the latest prebuilt MathWorks&reg; Amazon Machine Images (AMIs).
+
+## Build and Deploy Your Own Machine Image
+
+For details of the scripts which form the basis of the MathWorks Linux AMI build process,
+see [Build Your Own Machine Image](./packer/v1).
+You can use these scripts to build a custom Linux machine image for running MATLAB Parallel Server on Amazon Web Services.
+You can then deploy this custom image with the MathWorks infrastructure as code (IaC) templates.
+
+You can customize the MATLAB release which is installed as part of this custom build.
+This includes MATLAB releases supported by the prebuilt images, as well as earlier MATLAB releases.
+For more details,
+see [Customize MATLAB Paralle Server Release to Install](./packer/v1#customize-matlab-parallel-server-release-to-install).
+
+Platform engineering teams can use these scripts to take advantage of optimizations MathWorks has developed
+for running MathWorks products in the cloud.
+For more details, see [What are the advantages of building images with MathWorks scripts?](#what-are-the-advantages-of-building-images-with-mathworks-scripts)
 
 # Learn About Cluster Architecture
 
@@ -134,6 +161,17 @@ Before enabling Spot Instances, consider these three aspects:
 * Behavior of your cluster when AWS reclaims a Spot Instance: Spot Instances are used only for the worker nodes, whereas the head node always uses an On-Demand instance. This is to ensure that you do not lose any user job and task information when an EC2 instance is reclaimed by AWS. Jobs in the queue are run when a new worker instance is available. For details on how jobs are run, refer to [How Parallel Computing Toolbox Runs a Job](https://www.mathworks.com/help/parallel-computing/how-parallel-computing-products-run-a-job.html). If an EC2 Spot Instance for a worker is interrupted when it is running a task, the task is marked as failed. You can set the maximum number of times to rerun a failed task using the `MaximumRetries` property. For more details, see [Access task properties and behaviors](https://www.mathworks.com/help/parallel-computing/parallel.task.html).
 
 * Parameters for the VPC and subnet in this CloudFormation template: Each Availability Zone in a region has a different capacity available for Spot Instances. To increase the likelihood of obtaining Spot Instances for your cluster, ensure that your VPC has subnets in multiple Availability Zones in the region.
+
+### What are the advantages of building images with MathWorks scripts?
+
+Images built with MathWorks scripts are optimized and tested for MathWorks workflows.
+The images are deployed by MathWorks CloudFormation templates following AWS best practices.
+
+The warmup scripts found in [startup](./packer/v1/startup) allow you to start MATLAB faster. The CloudFormation template uses these scripts to automatically initialize MathWorks files on the instance. These scripts are automatically included in both the prebuilt images and the images that you build using the instructions in [Deployment Steps](#deployment-steps).
+
+Without the optimization scripts, starting a large software application, such as MATLAB, for the first time can potentially take tens of minutes. Subsequent starts of the large software application will be faster. This is because AWS initializes the storage for the EC2 instance, as described in [Initialize Amazon EBS volumes](https://docs.aws.amazon.com/ebs/latest/userguide/ebs-initialize.html).
+
+Other scripts in this repo also ensure that all the necessary MATLAB dependencies are installed, and make it easy to build an image with an older MATLAB release.
 
 # Technical Support
 If you require assistance or have a request for additional features or capabilities, contact [MathWorks Technical Support](https://www.mathworks.com/support/contact_us.html).

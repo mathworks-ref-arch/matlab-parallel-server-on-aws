@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Copyright 2024-2025 The MathWorks, Inc.
+
+# Script invoked by MJS when it is idle
+
+log_file="/var/log/mathworks/mjs_status_transitions.log"
+current_time=$(date -u +"%Y-%m-%d %H:%M:%S")
+status_message="MJS idle since: $current_time UTC"
+
+if [ ! -f "${log_file}" ]; then
+    echo "${status_message}" > "${log_file}"
+else
+    last_line=$(tail -n 1 "${log_file}")
+    if [[ ${last_line} != *"idle"* ]]; then
+        # Only log as idle if last state was recorded to be busy
+        echo "${status_message}" >> "${log_file}"
+    fi
+fi

@@ -11,7 +11,6 @@ Click the **Launch Stack** button for your desired region below to deploy the cl
 | **eu-west-1** | [![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start an cluster using the template")](https://eu-west-1.console.aws.amazon.com/cloudformation/home?region=eu-west-1#/stacks/create/review?templateURL=https://mdcs-on-aws.s3.amazonaws.com/R2025b/mjs-cluster-template.json) |
 | **ap-northeast-1** | [![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Start an cluster using the template")](https://ap-northeast-1.console.aws.amazon.com/cloudformation/home?region=ap-northeast-1#/stacks/create/review?templateURL=https://mdcs-on-aws.s3.amazonaws.com/R2025b/mjs-cluster-template.json) |
 
-To deploy the cluster in a region not listed above, see [Deploy Cluster in a Custom Region](#deploy-cluster-in-a-custom-region).
 
 ## Step 2. Configure the Cloud Resources
 Clicking the **Launch Stack** button above opens the “Quick create stack” page in your browser. You can configure the parameters on this page. It is easier to complete the steps if you position these instructions and the AWS console window side by side.
@@ -180,19 +179,6 @@ wget --output-document=/usr/local/matlab/toolbox/parallel/bin/mjs_def.sh https:/
 ## Nested Stacks
 
 This CloudFormation template uses nested stacks to reference templates used by multiple reference architectures. For details, see the [MathWorks Infrastructure as Code Building Blocks](https://github.com/mathworks-ref-arch/iac-building-blocks) repository.
-
-## Deploy Cluster in a Custom Region
-
-MathWorks provides prebuilt Amazon Machine Images (AMIs) only in the regions listed in [Step 1. Deploy the Template](#step-1-deploy-the-template). To deploy a cluster in a different region, follow these steps.
-
-1. **Copy AMI into your account**: Use this AWS quick-create link to copy the latest MATLAB Parallel Server AMI on Linux into your AWS account. Clicking the link opens a CloudFormation template with prepopulated fields. Set the AWS region in the AWS console to your desired region and deploy the template to copy the AMI. Copying takes 5 to 15 minutes. You are responsible for the costs associated with the storage of this AMI and its snapshots in your AWS account. To save costs, delete this AMI and the snapshots if you no longer need it.
-
-    [![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Copy an AMI into your AWS account")](https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?templateURL=https://mathworks-reference-architectures-templates.s3.amazonaws.com/copy-ami-lambda/v1/0/0/copy-ami-lambda.yml&stackName=Copy-of-MATLAB-Parallel-Server-R2025b-AMI&param_SourceAmiId=ami-0868b93f1fa69607a&param_SourceRegion=us-east-1&param_AmiName=Copy%20of%20MATLAB%20Parallel%20Server%20Linux%20R2025b&param_ReferenceTag=https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws&param_MWTemplateUrl=https://mdcs-on-aws.s3.amazonaws.com/R2025b/mjs-cluster-template.json)
-
-2. **Deploy a cluster using your copied AMI**: After your copy is complete and your AMI is ready, use the `LaunchClusterWithCopiedAmi` link in the outputs tab to deploy a cluster in your desired region. You can also share this link or the Custom AMI ID with others in your AWS account to allow them to deploy clusters using the same AMI.
-
-### Delete the Copied AMI
-When you deploy a cluster using an AMI, new worker instances are created from that AMI. Delete the AMI from your account only after you have finished using all clusters based on it. To delete the AMI, navigate to the copied AMI in the AWS console using the link in the Outputs tab of the stack. Choose `Actions`, then `Deregister AMI`. Select the option `Delete associated snapshots` to also delete the associated snapshot.
 
 ## Troubleshooting
 

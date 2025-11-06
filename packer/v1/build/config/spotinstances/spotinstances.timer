@@ -1,0 +1,12 @@
+# Copyright 2024-2025 The MathWorks, Inc.
+[Unit]
+Description=Spot Instance Monitoring timer for MATLAB Parallel Server
+Requires=spotinstances.service
+
+[Timer]
+Unit=spotinstances.service
+OnCalendar=*-*-* *:*:30
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target
