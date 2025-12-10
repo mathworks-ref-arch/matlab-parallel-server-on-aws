@@ -43,16 +43,10 @@ To view instructions for deploying the MATLAB Parallel Server reference architec
 | [R2024b](releases/R2024b/README.md) | [R2024b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2024b/README.md) |
 | [R2024a](releases/R2024a/README.md) | [R2024a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2024a/README.md) |
 | [R2023b](releases/R2023b/README.md) | [R2023b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2023b/README.md) |
-| [R2023a](releases/R2023a/README.md) | [R2023a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2023a/README.md) |
-| [R2022b](releases/R2022b/README.md) | [R2022b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2022b/README.md) |
-| [R2022a](releases/R2022a/README.md) | [R2022a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2022a/README.md) |
-| [R2021b](releases/R2021b/README.md) | [R2021b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2021b/README.md) |
-| [R2021a](releases/R2021a/README.md) |  |
-| [R2020b](releases/R2020b/README.md) |  |
-| [R2020a](releases/R2020a/README.md) |  |
-| [R2019b](releases/R2019b/README.md) |  |
-| [R2019a\_and\_older](releases/R2019a_and_older/README.md) |  |
-
+|  | [R2023a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2023a/README.md) |
+|  | [R2022b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2022b/README.md) |
+|  | [R2022a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2022a/README.md) |
+|  | [R2021b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2021b/README.md) |
 
 The above instructions allow you to launch instances based on the latest prebuilt MathWorks&reg; Amazon Machine Images (AMIs).
 
