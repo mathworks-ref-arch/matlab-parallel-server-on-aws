@@ -36,17 +36,14 @@ You can also use this workflow to install an earlier MATLAB release.
 
 To view instructions for deploying the MATLAB Parallel Server reference architecture, select a MATLAB release:
 
-| Linux | Windows |
-| ----- | ------- |
-| [R2025b](releases/R2025b/README.md) | [R2025b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2025b/README.md) |
-| [R2025a](releases/R2025a/README.md) | [R2025a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2025a/README.md) |
-| [R2024b](releases/R2024b/README.md) | [R2024b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2024b/README.md) |
-| [R2024a](releases/R2024a/README.md) | [R2024a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2024a/README.md) |
-| [R2023b](releases/R2023b/README.md) | [R2023b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2023b/README.md) |
-|  | [R2023a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2023a/README.md) |
-|  | [R2022b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2022b/README.md) |
-|  | [R2022a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2022a/README.md) |
-|  | [R2021b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2021b/README.md) |
+| Linux | Windows | Status |
+| ----- | ------- | ------- |
+| [R2025b](releases/R2025b/README.md) | [R2025b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2025b/README.md) | ✅ Prebuilt available. |
+| [R2025a](releases/R2025a/README.md) | [R2025a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2025a/README.md) | ✅ Prebuilt available. |
+| [R2024b](releases/R2024b/README.md) | [R2024b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2024b/README.md) | ✅ Prebuilt available. |
+| [R2024a](releases/R2024a/README.md) | [R2024a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2024a/README.md) | ⚠️ Prebuilt will be removed in September 2026. |
+| [R2023b](releases/R2023b/README.md) | [R2023b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2023b/README.md) | ⚠️ Prebuilt will be removed in March 2026. |
+| [Earlier/Custom](./packer/v1) | [Earlier/Custom](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/packer/v1) | For earlier MATLAB releases, you must build your own machine image. |
 
 The above instructions allow you to launch instances based on the latest prebuilt MathWorks&reg; Amazon Machine Images (AMIs).
 
@@ -172,6 +169,6 @@ If you require assistance or have a request for additional features or capabilit
 
 ----
 
-Copyright 2018-2025 The MathWorks, Inc.
+Copyright 2018-2026 The MathWorks, Inc.
 
 ----
