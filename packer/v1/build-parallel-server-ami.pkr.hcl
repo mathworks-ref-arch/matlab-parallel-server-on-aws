@@ -150,7 +150,7 @@ variable "AWS_ACCESS_USERS" {
 
 variable "AWS_INSTANCE_PROFILE" {
   type = string
-  default = "PackerBuildInstanceProfile"
+  default = ""
   description = "The AWS instance profile role used during Packer builds."
 }
 
