@@ -43,7 +43,7 @@ To view instructions for deploying the MATLAB Parallel Server reference architec
 | [R2024b](releases/R2024b/README.md) | [R2024b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2024b/README.md) | ✅ Prebuilt available. |
 | [R2024a](releases/R2024a/README.md) | [R2024a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2024a/README.md) | ⚠️ Prebuilt will be removed in September 2026. |
 | [R2023b](releases/R2023b/README.md) | [R2023b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/releases/R2023b/README.md) | ⚠️ Prebuilt will be removed in March 2026. |
-| [Earlier/Custom](./packer/v1) | [Earlier/Custom](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/packer/v1) | For earlier MATLAB releases, you must build your own machine image. |
+ | [Earlier/Custom](./packer/v1) | [Earlier/Custom](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws-win/tree/master/packer/v1) | For earlier MATLAB releases, you must build your own machine image. |
 
 The above instructions allow you to launch instances based on the latest prebuilt MathWorks&reg; Amazon Machine Images (AMIs).
 
@@ -57,7 +57,7 @@ You can then deploy this custom image with the MathWorks infrastructure as code 
 You can customize the MATLAB release which is installed as part of this custom build.
 This includes MATLAB releases supported by the prebuilt images, as well as earlier MATLAB releases.
 For more details,
-see [Customize MATLAB Paralle Server Release to Install](./packer/v1#customize-matlab-parallel-server-release-to-install).
+see [Customize MATLAB Parallel Server Release to Install](./packer/v1#customize-matlab-parallel-server-release-to-install).
 
 Platform engineering teams can use these scripts to take advantage of optimizations MathWorks has developed
 for running MathWorks products in the cloud.

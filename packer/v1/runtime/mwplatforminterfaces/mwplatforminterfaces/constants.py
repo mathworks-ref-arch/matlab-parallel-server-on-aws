@@ -1,11 +1,8 @@
-# Copyright 2024-2025 The MathWorks, Inc.
+# Copyright 2024-2026 The MathWorks, Inc.
 # File to store constants that are used throughout modules of the mwplatforminterfaces package.
 
 # AWS IMDS URL: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-metadata.html
 IMDS_URL = "http://169.254.169.254"
-
-# Time after launch before the node is considered fully running
-GRACE_PERIOD_MINUTES = 5
 
 # Tag for checking the idle timeout for a node
 IDLE_TIMEOUT_TAG = "mwWorkerIdleTimeoutMinutes"

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2022-2025 The MathWorks, Inc.
+# Copyright 2022-2026 The MathWorks, Inc.
 import logging
 
 from mwplatforminterfaces import CloudInterface
@@ -9,18 +9,20 @@ from mwplatforminterfaces import OSInterface
 from constants import (
     STATUS_SUCCESS,
     STATUS_CLOUD_ISSUE,
-    STATUS_CLUSTER_ISSUE,
 )
 
 logger = logging.getLogger("cluster_management.autoscaling.health_check")
 
-
 def main(cloud_interface: CloudInterface, os_interface: OSInterface) -> int:
-    """Execute health check routine.
+    """Evaluate orphaned nodes in the cluster.
 
-    The routine flags nodes that are in a bad state. A node is in a bad state
-    if the worker group is in the 'Suspended' state. The cloud provider will
-    then replace the affected nodes automatically.
+    This routine looks for nodes that have been running for atleast 
+    idle_timeout_seconds and are not registered with MJS or are in a suspended state. 
+    These could be unhealthy nodes that are orphaned from MJS due to unexpected 
+    reasons (user data execution failure, etc.).
+
+    The routine will try to set their health status as Unhealthy. The cloud platform will
+    then automatically replace the nodes with new ones to match the desired capacity.
 
     Args:
         cloud_interface (CloudInterface): Cloud provider specific
@@ -32,31 +34,48 @@ def main(cloud_interface: CloudInterface, os_interface: OSInterface) -> int:
         status (int): Status code of program.
                         0: Successful
                         1: Faced an issue with cloud provider
-                        2: Faced an issue with cluster
-                        3: Faced an issue with both
     """
-    current_nodes = cloud_interface.get_worker_nodes()
-    if current_nodes is None:
-        logger.error("There was an issue retrieving the worker nodes.")
-        return STATUS_CLOUD_ISSUE
+    # The idle timeout for workers is defined by the mwWorkerIdleTimeoutMinutes
+    # tag defined in the cluster auto-scaling group resource
+    idle_timeout_seconds = cloud_interface.get_idle_timeout_seconds()
+    logger.debug("Idle timeout is %ss", idle_timeout_seconds)
 
-    logger.debug("Current nodes: %s", current_nodes)
+    # Retrieve current nodes in the cluster that are running for
+    # at least idle_timeout_seconds
+    current_nodes = cloud_interface.get_worker_nodes(
+        grace_period_seconds = idle_timeout_seconds
+    )
 
-    bad_nodes = os_interface.get_suspended_nodes(current_nodes)
-    if bad_nodes is None:
-        logger.error("There was an issue querying the worker nodes.")
-        return STATUS_CLUSTER_ISSUE
+    if not current_nodes:
+        logger.info("There are no worker nodes running for more than %s seconds.", idle_timeout_seconds)
+        return STATUS_SUCCESS
 
-    if bad_nodes:
-        logger.debug("Marking nodes as unhealthy: %s", bad_nodes)
-        nodes_were_marked = cloud_interface.set_nodes_unhealthy(bad_nodes)
-        if nodes_were_marked:
-            logger.info("Successfully marked nodes as unhealthy")
-            return STATUS_SUCCESS
-        else:
-            logger.info("Failed to set nodes as unhealthy")
-            return STATUS_CLOUD_ISSUE
+    logger.debug("%d nodes running for more than %s seconds: %s", len(current_nodes), idle_timeout_seconds, current_nodes)
 
-    else:
+    # Worker nodes where MATLAB workers have been suspended or stopped
+    suspended_nodes = os_interface.get_suspended_nodes(current_nodes)
+
+    logger.debug("%d suspended nodes: %s", len(suspended_nodes), suspended_nodes)
+
+    # Retrieve nodes that are registered with MJS
+    registered_worker_nodes = os_interface.get_worker_nodes()
+
+    # We target nodes that are not registered with MJS
+    current_unregistered_nodes = current_nodes - registered_worker_nodes
+
+    logger.debug("%d unregistered nodes: %s", len(current_unregistered_nodes), current_unregistered_nodes)
+
+    nodes_to_mark_unhealthy = suspended_nodes.union(current_unregistered_nodes)
+
+    if not nodes_to_mark_unhealthy:
         logger.info("All nodes are healthy")
         return STATUS_SUCCESS
+
+    logger.info("Marking suspended and unregistered nodes as unhealthy: %s", nodes_to_mark_unhealthy)
+    nodes_were_marked = cloud_interface.set_nodes_unhealthy(nodes_to_mark_unhealthy)
+
+    if not nodes_were_marked:
+        logger.error("Failed to mark nodes as unhealthy")
+        return STATUS_CLOUD_ISSUE
+
+    return STATUS_SUCCESS

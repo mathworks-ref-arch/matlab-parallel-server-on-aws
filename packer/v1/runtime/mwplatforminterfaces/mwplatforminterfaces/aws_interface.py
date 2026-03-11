@@ -1,4 +1,4 @@
-# Copyright 2021-2025 The MathWorks, Inc.
+# Copyright 2021-2026 The MathWorks, Inc.
 
 from .cloud_interface import (
     AbstractCloudInterface,
@@ -10,7 +10,6 @@ from .constants import (
     IDLE_TIMEOUT_TAG,
     IDLE_TIMEOUT_DEFAULT,
     CLUSTER_TERMINATION_TAG,
-    GRACE_PERIOD_MINUTES,
     MW_STATE_TAG,
 )
 
@@ -135,7 +134,7 @@ class AWSInterface(AbstractCloudInterface):
 
         return IDLE_TIMEOUT_DEFAULT * 60
 
-    def get_worker_nodes(self) -> Set[str]:
+    def get_worker_nodes(self, grace_period_seconds: int = 300) -> Set[str]:
         """Get the current worker nodes running in the Auto Scaling group.
         Only the nodes in a good state (online and healthy) will be
         returned.
@@ -172,7 +171,7 @@ class AWSInterface(AbstractCloudInterface):
             nodes_hostnames = {
                 host
                 for host, uptime in host_uptime.items()
-                if uptime.total_seconds() > 60 * GRACE_PERIOD_MINUTES
+                if uptime.total_seconds() > grace_period_seconds
             }
 
             return nodes_hostnames

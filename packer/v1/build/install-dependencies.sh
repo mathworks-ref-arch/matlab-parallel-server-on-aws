@@ -80,7 +80,7 @@ sudo apt-get update
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 source $HOME/.cargo/env
 
-sudo apt-get -y install git binutils rustc cargo pkg-config libssl-dev
+sudo apt-get -y install git binutils rustc cargo pkg-config libssl-dev golang-go cmake
 git clone https://github.com/aws/efs-utils
 cd efs-utils
 ./build-deb.sh

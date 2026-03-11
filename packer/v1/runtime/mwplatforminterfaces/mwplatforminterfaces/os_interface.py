@@ -1,4 +1,4 @@
-# Copyright 2021-2025 The MathWorks, Inc.
+# Copyright 2021-2026 The MathWorks, Inc.
 
 from abc import ABC, abstractmethod
 import asyncio
@@ -12,6 +12,12 @@ logger = logging.getLogger("mwplatforminterfaces.os_interface")
 
 # Limit the number of concurrent calls to MJS
 MJS_SEM = asyncio.Semaphore(20)
+
+# Seconds to wait for stopworker execution
+STOPWORKER_TIMEOUT = 25
+
+# Seconds to wait for nodestatus execution
+NODESTATUS_TIMEOUT = 15
 
 
 class ClusterCapacity(NamedTuple):
@@ -372,7 +378,6 @@ class AbstractOSInterface(ABC):
         """
         executable = self._get_nodestatus_executable()
         args = ["-json", "-remotehost", hostname]
-        timeout_seconds = 15
 
         async with MJS_SEM:
             proc = await asyncio.create_subprocess_exec(
@@ -383,7 +388,7 @@ class AbstractOSInterface(ABC):
             )
             try:
                 stdout, stderr = await asyncio.wait_for(
-                    proc.communicate(), timeout_seconds
+                    proc.communicate(), NODESTATUS_TIMEOUT
                 )
                 if proc.returncode == 0:
                     output = json.loads(stdout)
@@ -401,7 +406,7 @@ class AbstractOSInterface(ABC):
             except asyncio.TimeoutError:
                 logger.debug(
                     "Command %s %s timed-out after %ss.",
-                    executable, args, timeout_seconds
+                    executable, args, NODESTATUS_TIMEOUT
                 )
 
         return None
@@ -418,7 +423,6 @@ class AbstractOSInterface(ABC):
         """
         executable = self._get_stopworker_executable()
         args = ["-onidle", "-all", "-remotehost", node_hostname]
-        timeout_seconds = 15
 
         async with MJS_SEM:
             proc = await asyncio.create_subprocess_exec(
@@ -429,7 +433,7 @@ class AbstractOSInterface(ABC):
             )
             try:
                 stdout, stderr = await asyncio.wait_for(
-                    proc.communicate(), timeout_seconds
+                    proc.communicate(), STOPWORKER_TIMEOUT
                 )
                 if proc.returncode == 0:
                     return True
@@ -445,7 +449,7 @@ class AbstractOSInterface(ABC):
             except asyncio.TimeoutError:
                 logger.debug(
                     "Command %s %s timed-out after %ss.",
-                    executable, args, timeout_seconds
+                    executable, args, STOPWORKER_TIMEOUT
                 )
 
         return False

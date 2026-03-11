@@ -1,4 +1,4 @@
-# Copyright 2025 The MathWorks, Inc.
+# Copyright 2025-2026 The MathWorks, Inc.
 
 packer {
   required_plugins {
@@ -38,17 +38,17 @@ variable "BASE_AMI_NAME" {
 }
 
 variable "BUILD_SCRIPTS" {
-  type        = list(string)
-  default     = ["create-cloud-user.sh",
-                 "install-runtime-scripts.sh",
-                 "install-startup-scripts.sh",
-                 "install-shutdown-scripts.sh",
-                 "install-dependencies.sh",
-                 "install-matlab-dependencies-ubuntu.sh",
-                 "install-matlab.sh",
-                 "install-polyspace.sh",
-                 "setup-startup-accelerator.sh",
-                 "cleanup.sh"]
+  type = list(string)
+  default = ["create-cloud-user.sh",
+    "install-runtime-scripts.sh",
+    "install-startup-scripts.sh",
+    "install-shutdown-scripts.sh",
+    "install-dependencies.sh",
+    "install-matlab-dependencies-ubuntu.sh",
+    "install-matlab.sh",
+    "install-polyspace.sh",
+    "setup-startup-accelerator.sh",
+  "cleanup.sh"]
   description = "The list of installation scripts Packer will use when building the image."
 }
 
@@ -60,7 +60,7 @@ variable "STARTUP_SCRIPTS" {
 
 variable "RUNTIME_SCRIPTS" {
   type = list(string)
-  default = [ 
+  default = [
     "cluster_management",
     "mwplatforminterfaces",
     "spotinstances",
@@ -91,6 +91,12 @@ variable "NVIDIA_DRIVER_VERSION" {
   type        = string
   default     = "535"
   description = "The version of the NVIDIA driver to install."
+}
+
+variable "MSA_URL" {
+  type        = string
+  description = "URL pointing to a valid MATLAB Startup Accelerator file. If left unset, a default URL will be constructed based on the RELEASE variable."
+  default     = null
 }
 
 variable "MATLAB_SOURCE_URL" {
@@ -149,8 +155,8 @@ variable "AWS_ACCESS_USERS" {
 }
 
 variable "AWS_INSTANCE_PROFILE" {
-  type = string
-  default = ""
+  type        = string
+  default     = ""
   description = "The AWS instance profile role used during Packer builds."
 }
 
@@ -163,16 +169,16 @@ variable "MANIFEST_OUTPUT_FILE" {
 variable "AMI_TAGS" {
   type = map(string)
   default = {
-    image     = "matlab-parallel-server"
-    platform  = "linux"
-    builder   = "packer"
+    image    = "matlab-parallel-server"
+    platform = "linux"
+    builder  = "packer"
   }
 }
 
 variable "SSH_INTERFACE" {
-  type         = string
-  default      = "public_ip"
-  description  = "Specifies the network interface address used by Packer for SSH connections. Acceptable values are 'public_ip', 'private_ip', 'public_dns', or 'private_dns'."
+  type        = string
+  default     = "public_ip"
+  description = "Specifies the network interface address used by Packer for SSH connections. Acceptable values are 'public_ip', 'private_ip', 'public_dns', or 'private_dns'."
 }
 
 variable "SECURITY_GROUP_ID" {
@@ -182,8 +188,8 @@ variable "SECURITY_GROUP_ID" {
 }
 
 variable "TEMP_SG_PUBLIC_IP" {
-  type = bool
-  default = true
+  type        = bool
+  default     = true
   description = "If true, Packer will authorize SSH access from the host’s public IP (as a CIDR block) in the temporary security group created for the Packer Builder instance. This setting is only used when SECURITY_GROUP_ID is not provided."
 }
 
@@ -211,6 +217,10 @@ locals {
   build_scripts   = [for s in var.BUILD_SCRIPTS : format("build/%s", s)]
   startup_scripts = [for s in var.STARTUP_SCRIPTS : format("startup/%s", s)]
   runtime_scripts = [for s in var.RUNTIME_SCRIPTS : format("runtime/%s", s)]
+  # This local variable decides which URL to use.
+  # If var.MSA_URL is not null (meaning the user provided an override), use that value.
+  # Otherwise, construct the URL using var.RELEASE.
+  effective_msa_url = var.MSA_URL != null ? var.MSA_URL : "https://raw.githubusercontent.com/mathworks-ref-arch/iac-building-blocks/refs/heads/main/common/artifacts/msa/${var.RELEASE}/Linux/msa.ini"
 }
 
 # Configure the EC2 instance that is used to build the machine image.
@@ -227,7 +237,7 @@ source "amazon-ebs" "AMI_Builder" {
     volume_type           = "gp2"
     delete_on_termination = true
   }
-  region       = "us-east-1"
+  region = "us-east-1"
   source_ami_filter {
     filters = {
       "virtualization-type" = "hvm"
@@ -253,7 +263,7 @@ source "amazon-ebs" "AMI_Builder" {
   ami_users                                 = "${var.AWS_ACCESS_USERS}"
   snapshot_users                            = "${var.AWS_ACCESS_USERS}"
 
-  ssh_interface                             = "${var.SSH_INTERFACE}"  
+  ssh_interface                             = "${var.SSH_INTERFACE}"
   subnet_id                                 = "${var.SUBNET_ID}"
   vpc_id                                    = "${var.VPC_ID}"
   security_group_id                         = "${var.SECURITY_GROUP_ID}"
@@ -289,8 +299,8 @@ build {
   }
 
   provisioner "file" {
-      destination = "/tmp/startup/reusable-helper-scripts"
-      source      = "startup/reusable-helper-scripts"
+    destination = "/tmp/startup/reusable-helper-scripts"
+    source      = "startup/reusable-helper-scripts"
   }
 
   provisioner "file" {
@@ -304,7 +314,7 @@ build {
 
   provisioner "file" {
     destination = "/tmp/"
-    source = "runtime"
+    source      = "runtime"
   }
 
   provisioner "shell" {
@@ -315,6 +325,7 @@ build {
       "NVIDIA_DRIVER_VERSION=${var.NVIDIA_DRIVER_VERSION}",
       "NVIDIA_CUDA_TOOLKIT=${var.NVIDIA_CUDA_TOOLKIT}",
       "NVIDIA_CUDA_KEYRING_URL=${var.NVIDIA_CUDA_KEYRING_URL}",
+      "MSA_URL=${local.effective_msa_url}",
       "MATLAB_SOURCE_URL=${var.MATLAB_SOURCE_URL}",
       "MATLAB_ROOT=/usr/local/matlab",
       "POLYSPACE_ROOT=${var.POLYSPACE_ROOT}",
@@ -328,10 +339,10 @@ build {
     output     = "${var.MANIFEST_OUTPUT_FILE}"
     strip_path = true
     custom_data = {
-      release            = "MATLAB ${var.RELEASE}"
-      specified_products = "${var.PRODUCTS}"
+      release                      = "MATLAB ${var.RELEASE}"
+      specified_products           = "${var.PRODUCTS}"
       specified_polyspace_products = "${var.POLYSPACE_PRODUCTS}"
-      build_scripts      = join(", ", "${var.BUILD_SCRIPTS}")
+      build_scripts                = join(", ", "${var.BUILD_SCRIPTS}")
     }
   }
 }

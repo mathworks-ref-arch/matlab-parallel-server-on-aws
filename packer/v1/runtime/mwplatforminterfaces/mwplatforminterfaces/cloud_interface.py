@@ -1,4 +1,4 @@
-# Copyright 2021-2025 The MathWorks, Inc.
+# Copyright 2021-2026 The MathWorks, Inc.
 
 from abc import ABC, abstractmethod
 from typing import NamedTuple, Set
@@ -39,7 +39,7 @@ class AbstractCloudInterface(ABC):
         pass
 
     @abstractmethod
-    def get_worker_nodes(self) -> Set[str]:
+    def get_worker_nodes(self, grace_period_seconds: int) -> Set[str]:
         """Get the current worker nodes running on the cloud-computing
         platform. Only the nodes in a good state (online and healthy) will be
         returned.
