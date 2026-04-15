@@ -22,7 +22,7 @@ variable "PRODUCTS" {
 
 variable "RELEASE" {
   type        = string
-  default     = "R2025b"
+  default     = "R2026a"
   description = "Target MATLAB release to install in the machine image, must start with \"R\"."
 
   validation {
@@ -33,8 +33,8 @@ variable "RELEASE" {
 
 variable "BASE_AMI_NAME" {
   type        = string
-  default     = "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"
-  description = "Default AMI name refers to the Ubuntu Server 22.04 image provided by Canonical."
+  default     = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"
+  description = "Default AMI name refers to the Ubuntu Server 24.04 image provided by Canonical."
 }
 
 variable "BUILD_SCRIPTS" {
@@ -54,7 +54,7 @@ variable "BUILD_SCRIPTS" {
 
 variable "STARTUP_SCRIPTS" {
   type        = list(string)
-  default     = [".env", "10_setup-disks.sh", "15_setup-shared-storage.sh", "20_optimize-gpu.sh", "30_setup-logging.sh", "35_setup-machine.sh", "40_setup-matlab.sh", "50_warmup-matlab.sh", "60_edit-mjs-def.sh", "70_sync-mjs-files.sh", "80_start-mjs.sh", "90_add-spot-instance-monitoring.sh", "95_setup-clustermanagement-program.sh"]
+  default     = [".env", "setup-mjs-hostname.sh", "10_setup-disks.sh", "15_setup-shared-storage.sh", "20_optimize-gpu.sh", "30_setup-logging.sh", "35_setup-machine.sh", "40_setup-matlab.sh", "50_warmup-matlab.sh", "60_edit-mjs-def.sh", "70_sync-mjs-files.sh", "80_start-mjs.sh", "90_add-spot-instance-monitoring.sh", "95_setup-clustermanagement-program.sh"]
   description = "The list of startup scripts Packer will copy to the remote machine image builder, which can be used during the CloudFormation Stack creation."
 }
 
@@ -77,19 +77,19 @@ variable "CLOUD_USER" {
 
 variable "NVIDIA_CUDA_TOOLKIT" {
   type        = string
-  default     = "https://developer.download.nvidia.com/compute/cuda/12.2.2/local_installers/cuda_12.2.2_535.104.05_linux.run"
+  default     = "https://developer.download.nvidia.com/compute/cuda/12.8.0/local_installers/cuda_12.8.0_570.86.10_linux.run"
   description = "The URL to install NVIDIA CUDA Toolkit into the target machine image. "
 }
 
 variable "NVIDIA_CUDA_KEYRING_URL" {
   type        = string
-  default     = "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb"
+  default     = "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb"
   description = "NVIDIA CUDA keyring url."
 }
 
 variable "NVIDIA_DRIVER_VERSION" {
   type        = string
-  default     = "535"
+  default     = "590"
   description = "The version of the NVIDIA driver to install."
 }
 
@@ -234,7 +234,7 @@ source "amazon-ebs" "AMI_Builder" {
   launch_block_device_mappings {
     device_name           = "/dev/sda1"
     volume_size           = 128
-    volume_type           = "gp2"
+    volume_type           = "gp3"
     delete_on_termination = true
   }
   region = "us-east-1"
@@ -282,6 +282,14 @@ build {
 
   provisioner "shell" {
     inline = ["/usr/bin/cloud-init status --wait"]
+  }
+
+  # Configure Global Apt Wait Time to avoid dpkg-lock errors
+  provisioner "shell" {
+    inline = [
+      # Ensure apt waits for 300s if dpkg lock is held by other processes
+      "echo 'DPkg::Lock::Timeout \"300\";' | sudo tee /etc/apt/apt.conf.d/99apt-lock-timeout"
+    ]
   }
 
   provisioner "shell" {

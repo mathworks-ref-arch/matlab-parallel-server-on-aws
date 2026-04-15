@@ -42,41 +42,63 @@ class AWSInterface(AbstractCloudInterface):
 
     _workers_per_node: int
 
-    def __init__(self) -> None:
+    def __init__(
+            self,
+            use_private_ip_mapping: bool = False,
+            dns_search_suffix: str = None
+        ) -> None:
         """Create AWSInterface object and set all necessary attributes.
 
         Headnode information is retrieved from the instance meta-data url.
         Auto Scaling group is identified through its name in the
         CloudFormation outputs.
         """
-        # Retrieve token to query imds (required for imdsv2)
-        token_response = requests.put(
-            f"{IMDS_URL}/latest/api/token",
-            headers={"X-aws-ec2-metadata-token-ttl-seconds": "60"},
-        )
+        try:
+            # Retrieve token to query imds (required for imdsv2)
+            token_response = requests.put(
+                f"{IMDS_URL}/latest/api/token",
+                headers = {"X-aws-ec2-metadata-token-ttl-seconds": "60"},
+                timeout = 5
+            )
 
-        imds_token = token_response.text
+            imds_token = token_response.text
 
-        # Reading instance metadata.
-        document = requests.get(
-            f"{IMDS_URL}/latest/dynamic/instance-identity/document",
-            headers={"X-aws-ec2-metadata-token": imds_token},
-        ).json()
+            # Reading instance metadata.
+            document = requests.get(
+                f"{IMDS_URL}/latest/dynamic/instance-identity/document",
+                headers = {"X-aws-ec2-metadata-token": imds_token},
+                timeout = 5
+            ).json()
 
-        # Setting all necessary attributes
-        self.__session = boto3.Session(region_name=document["region"])
-        self.__asg_client = self.__session.client("autoscaling")
-        self.__ec2_client = self.__session.client("ec2")
+            # Setting all necessary attributes
+            self.__session = boto3.Session(region_name=document["region"])
+            self.__asg_client = self.__session.client("autoscaling")
+            self.__ec2_client = self.__session.client("ec2")
 
-        self.__headnode_id = document["instanceId"]
+            self.__headnode_id = document["instanceId"]
 
-        stack = self.__get_stack(document["instanceId"])
-        self.__asg_name = self.__get_asg_name(stack.outputs)
+            stack = self.__get_stack(document["instanceId"])
 
-        instance_type = self.__get_node_instance_type(stack.parameters)
-        self._workers_per_node = self.__get_workers_per_node(
-            stack.parameters, instance_type
-        )
+            if stack.outputs is None:
+                logger.error("CloudFormation stack outputs are not available." \
+                " Current stack status: %s", str(stack.stack_status))
+                raise RuntimeError(
+                    "Cannot retrieve ASG name from CloudFormation stack outputs."
+                )
+
+            self.__asg_name = self.__get_asg_name(stack.outputs)
+
+            instance_type = self.__get_node_instance_type(stack.parameters)
+            self._workers_per_node = self.__get_workers_per_node(
+                stack.parameters, instance_type
+            )
+
+            self.__use_private_ip_mapping = use_private_ip_mapping
+            self.__dns_suffix = dns_search_suffix
+
+        except RuntimeError as e:
+            logger.error("Failed to initialize AWSInterface: %s", str(e))
+            raise
 
     def get_cloud_capacity(self) -> CloudCapacity:
         """Get the Amazon EC2 Auto Scaling group capacity info
@@ -121,8 +143,7 @@ class AWSInterface(AbstractCloudInterface):
                 if timeout_seconds >= 0:
                     return timeout_seconds
 
-                else:
-                    logger.debug('Value "%s" is negative.', timeout_minutes)
+                logger.debug('Value "%s" is negative.', timeout_minutes)
 
             except StopIteration:
                 logger.debug('Tag "%s" was not found.', IDLE_TIMEOUT_TAG)
@@ -163,7 +184,7 @@ class AWSInterface(AbstractCloudInterface):
             ec2_data = self.__ec2_client.describe_instances(InstanceIds=nodes_ids)
             now = datetime.now(timezone.utc)
             host_uptime = {
-                i["PrivateDnsName"]: now - i["LaunchTime"]
+                self.__get_hostname(i): now - i["LaunchTime"]
                 for r in ec2_data["Reservations"]
                 for i in r["Instances"]
             }
@@ -414,7 +435,7 @@ class AWSInterface(AbstractCloudInterface):
         return None
 
     def _get_host_to_id(self) -> dict:
-        """Get a mapping between instances private hostname and their id.
+        """Get a mapping between instances private hostname or IPv4 address and their id.
 
         Returns:
             host_to_id (dict): Hostname to instance id dictionary.
@@ -428,7 +449,7 @@ class AWSInterface(AbstractCloudInterface):
 
             ec2_data = self.__ec2_client.describe_instances(InstanceIds=nodes_ids)
             host_to_id = {
-                i["PrivateDnsName"]: i["InstanceId"]
+                self.__get_hostname(i): i["InstanceId"]
                 for r in ec2_data["Reservations"]
                 for i in r["Instances"]
                 if i["State"]["Name"] != "terminated"
@@ -495,6 +516,25 @@ class AWSInterface(AbstractCloudInterface):
             return True
         except ValueError:
             return False
+       
+    def __get_hostname(self, instance: dict) -> str:
+        """Get the real hostname or private IPv4 address for an 
+        instance based on DNS suffix and IP mapping settings.
+        Relying on the dns suffix set by the caller method since
+        SDK calls do not return custom DNS suffix if the VPC has custom DNS enabled.
+
+        Args:
+            instance (dict): EC2 instance description dictionary.
+            
+        Returns:
+            str: The hostname to use for this instance.
+        """
+        if self.__use_private_ip_mapping:
+            # Use private IP
+            return instance['PrivateIpAddress']
+
+        local_hostname = instance['PrivateDnsName'].split('.')[0]
+        return f"{local_hostname}.{self.__dns_suffix}"
 
     def __get_asg_name(self, outputs) -> str:
         """Get the AutoScalingGroup name from the stack outputs."""

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2024-2025 The MathWorks, Inc.
+# Copyright 2024-2026 The MathWorks, Inc.
 
 import sys
 
@@ -20,6 +20,8 @@ from constants import (
     CLUSTER_READY_FOR_TERMINATION,
     AUTOSCALING_ENABLED,
     AUTOTERMINATION_ENABLED,
+    USE_PRIVATE_IP_MAPPING,
+    DNS_SEARCH_SUFFIX,
 )
 
 from logging_config import setup_logger
@@ -30,12 +32,15 @@ def main() -> int:
     """Execute the cluster management program.
 
     The program has two routines that are executed according to the user's choice:
-        1. Auto-scaling: Resize cluster based on workload. Executed if data['config']['autoscaling_enabled'] is True.
+        1. Auto-scaling: Resize cluster based on workload. 
+           Executed if data['config']['autoscaling_enabled'] is True.
            This choice is saved in cluster management data JSON file.
 
         2. Termination policy routine:
-            - Termination when idle: Terminate the whole cluster if MJS is idle for a certain amount of time, or,
-            - Termination on schedule: Terminate the whole cluster after a certain amount of time decided by the user.
+            - Termination when idle: Terminate the whole cluster if MJS 
+              is idle for a certain amount of time, or,
+            - Termination on schedule: Terminate the whole cluster after 
+              a certain amount of time decided by the user.
 
     Termination policies are dictated by the tag mw-autoshutdown in the head-node.
 
@@ -52,17 +57,46 @@ def main() -> int:
     termination_routine_status = STATUS_SUCCESS
     cluster_termination_status = STATUS_SUCCESS
 
-    logger.info("Connecting to the cloud computing platform...")
-    cloud_interface = CloudInterface()
-
     logger.info("Connecting to cluster...")
     os_interface = OSInterface()
 
     logger.info("Reading the cluster management program data file...")
-    cluster_management_interface = ClusterManagementProgramInterface()
+
+    try:
+        cluster_management_interface = ClusterManagementProgramInterface()
+    except Exception as e:
+        logger.error("Unexpected error initializing ClusterManagementProgramInterface: %s", e)
+        return STATUS_INTERNAL_READ_WRITE_ISSUE
+
+    # The use_private_ip_mapping boolean variable determines whether
+    # private IP addresses should be used to identify worker nodes, instead of hostnames
+    use_private_ip_mapping: bool = cluster_management_interface.cluster_management_config[
+        USE_PRIVATE_IP_MAPPING
+    ]
+
+    # The dns_search_suffix variable contains the custom DNS search suffix
+    # used to identify worker nodes
+    dns_search_suffix = cluster_management_interface.cluster_management_config[
+        DNS_SEARCH_SUFFIX
+    ]
+
+    logger.info("Connecting to the cloud computing platform...")
+    try:
+        cloud_interface = CloudInterface(
+            dns_search_suffix=dns_search_suffix,
+            use_private_ip_mapping=use_private_ip_mapping,
+        )
+
+    except Exception as e:
+        logger.error("Failed to initialize cloud interface: %s", str(e))
+        return STATUS_INTERNAL_READ_WRITE_ISSUE
 
     # Determine cluster readiness
-    mw_cluster_status = set_mw_state.main(cloud_interface, os_interface, cluster_management_interface)
+    mw_cluster_status = set_mw_state.main(
+                            cloud_interface,
+                            os_interface,
+                            cluster_management_interface
+                        )
 
     # Start autoscaling if it is enabled
     if (
@@ -83,7 +117,7 @@ def main() -> int:
             cluster_management_interface,
         )
 
-    if cluster_management_interface.update_state_file: 
+    if cluster_management_interface.update_state_file:
         state_updated = cluster_management_interface.update_cluster_management_data_file()
         if not state_updated:
             logger.error("Unable to update cluster management data file. Exiting...")
@@ -109,7 +143,10 @@ def main() -> int:
                 logger.debug("Failed to deallocate the head-node.")
 
     return max(
-        mw_cluster_status, autoscaling_status, termination_routine_status, cluster_termination_status
+        mw_cluster_status,
+        autoscaling_status,
+        termination_routine_status,
+        cluster_termination_status
     )
 
 

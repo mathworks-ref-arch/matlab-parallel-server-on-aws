@@ -1,4 +1,4 @@
-# Copyright 2024-2025 The MathWorks, Inc.
+# Copyright 2024-2026 The MathWorks, Inc.
 
 from typing import Dict, Type
 
@@ -44,3 +44,5 @@ AUTOTERMINATION_ENABLED = "autotermination_enabled"
 INITIAL_TERMINATION_POLICY = "initial_termination_policy"
 INITIAL_DESIRED_CAPACITY = "initial_desired_capacity"
 MJS_STATUS_LOG_FILE = "mjs_status_log_file"
+USE_PRIVATE_IP_MAPPING = "use_private_ip_mapping"
+DNS_SEARCH_SUFFIX = "dns_search_suffix"

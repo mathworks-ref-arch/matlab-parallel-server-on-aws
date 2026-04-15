@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright 2024-2025 The MathWorks, Inc.
+# Copyright 2024-2026 The MathWorks, Inc.
 
 PS4='+ [\d \t] '
 set -x
@@ -18,6 +18,9 @@ fi
 # Set auto_termination_flag based on user's choice
 auto_termination_flag=$([[ "${TERMINATION_POLICY}" != 'Disable auto-termination' ]] && echo "true" || echo "false")
 
+# This boolean flag tells the clustermanagement program to use private IPs of the workers instead of hostnames
+use_private_ip_mapping=$([[ "${COMMUNICATION_MODE}" == "PrivateIP" ]] && echo "true" || echo "false")
+
 # Check if the current node is the HEADNODE
 if [[ ${NODE_TYPE} == 'HEADNODE' ]]; then
 
@@ -25,12 +28,16 @@ if [[ ${NODE_TYPE} == 'HEADNODE' ]]; then
     jq --arg desired_cap "${DESIRED_CAPACITY}" \
        --arg policy "$termination_policy" \
        --arg mjs_status_log_file "${MJS_STATUS_LOG_FILE}" \
+       --arg dns_search_suffix "${DNS_SEARCH_SUFFIX}" \
        --argjson auto_termination_flag $auto_termination_flag \
+       --argjson use_private_ip_mapping $use_private_ip_mapping \
        '.config.initial_desired_capacity=$desired_cap |
         .state.last_termination_policy=$policy |
         .config.initial_termination_policy=$policy |
         .config.mjs_status_log_file=$mjs_status_log_file |
-        .config.autotermination_enabled=$auto_termination_flag' \
+        .config.autotermination_enabled=$auto_termination_flag |
+        .config.dns_search_suffix=$dns_search_suffix |
+        .config.use_private_ip_mapping=$use_private_ip_mapping' \
        ${CLUSTER_MANAGEMENT_DATA_FILE} > tmp.$$.json && mv tmp.$$.json ${CLUSTER_MANAGEMENT_DATA_FILE}
 
     # Set up MJS Cluster for Auto-Resizing

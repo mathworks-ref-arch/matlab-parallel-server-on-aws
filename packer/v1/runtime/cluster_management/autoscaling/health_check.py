@@ -47,10 +47,12 @@ def main(cloud_interface: CloudInterface, os_interface: OSInterface) -> int:
     )
 
     if not current_nodes:
-        logger.info("There are no worker nodes running for more than %s seconds.", idle_timeout_seconds)
+        logger.info("There are no worker nodes running for more than %s seconds.",
+                    idle_timeout_seconds)
         return STATUS_SUCCESS
 
-    logger.debug("%d nodes running for more than %s seconds: %s", len(current_nodes), idle_timeout_seconds, current_nodes)
+    logger.debug("%d nodes running for more than %s seconds: %s",
+                 len(current_nodes), idle_timeout_seconds, current_nodes)
 
     # Worker nodes where MATLAB workers have been suspended or stopped
     suspended_nodes = os_interface.get_suspended_nodes(current_nodes)
@@ -63,7 +65,10 @@ def main(cloud_interface: CloudInterface, os_interface: OSInterface) -> int:
     # We target nodes that are not registered with MJS
     current_unregistered_nodes = current_nodes - registered_worker_nodes
 
-    logger.debug("%d unregistered nodes: %s", len(current_unregistered_nodes), current_unregistered_nodes)
+    logger.debug("%d unregistered nodes: %s",
+                 len(current_unregistered_nodes),
+                 current_unregistered_nodes
+                )
 
     nodes_to_mark_unhealthy = suspended_nodes.union(current_unregistered_nodes)
 
@@ -71,7 +76,8 @@ def main(cloud_interface: CloudInterface, os_interface: OSInterface) -> int:
         logger.info("All nodes are healthy")
         return STATUS_SUCCESS
 
-    logger.info("Marking suspended and unregistered nodes as unhealthy: %s", nodes_to_mark_unhealthy)
+    logger.info("Marking suspended and unregistered nodes as unhealthy: %s",
+                nodes_to_mark_unhealthy)
     nodes_were_marked = cloud_interface.set_nodes_unhealthy(nodes_to_mark_unhealthy)
 
     if not nodes_were_marked:

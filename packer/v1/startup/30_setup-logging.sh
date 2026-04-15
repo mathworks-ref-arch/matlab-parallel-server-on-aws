@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 
-# Copyright 2021-2025 The MathWorks, Inc.
+# Copyright 2021-2026 The MathWorks, Inc.
 
 PS4='+ [\d \t] '
 set -x
+
+# Information about variables used:
+# CLOUD_LOG_NAME: Name of the CW log stream, set in the user-data from template
+# INSTANCE_ID: ID of the current instance, set in startup/.env file
 
 if [[ -n ${CLOUD_LOG_NAME} ]]; then
 
@@ -76,8 +80,6 @@ EOF
         )
 
     fi
-
-    INSTANCE_ID=$(curl -fs --retry 3 http://169.254.169.254/latest/meta-data/instance-id)
 
     # Prepare cloudwatch config file
     cat > /opt/aws/amazon-cloudwatch-agent/bin/config.json << EOF

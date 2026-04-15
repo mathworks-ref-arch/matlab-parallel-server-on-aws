@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright 2022-2025 The MathWorks, Inc.
+# Copyright 2022-2026 The MathWorks, Inc.
 
 # Exit on any failure, treat unset substitution variables as errors
 set -euo pipefail
@@ -9,6 +9,13 @@ set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 sudo apt-get -qq update
 sudo apt-get -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade
+
+# Install kernel headers, modules, and build tools required for NVIDIA driver compilation
+sudo apt-get install -qq \
+  linux-headers-$(uname -r) \
+  linux-modules-extra-$(uname -r) \
+  build-essential \
+  dkms
 
 # Ensure essential utilities are installed
 sudo apt-get -qq install gcc make unzip wget
@@ -59,7 +66,21 @@ sudo update-initramfs -u
 
 # Install nvidia-driver
 if [[ -n "${NVIDIA_DRIVER_VERSION}" ]]; then
+  wget -O cuda-keyring.deb ${NVIDIA_CUDA_KEYRING_URL}
+  sudo dpkg -i cuda-keyring.deb
+  sudo apt-get update
   sudo apt-get -y -qq install --no-install-recommends "nvidia-driver-${NVIDIA_DRIVER_VERSION}-server"
+fi
+
+# Install NVIDIA CUDA Toolkit
+if [[ -n "${NVIDIA_CUDA_TOOLKIT}" ]]; then
+  wget --no-verbose "${NVIDIA_CUDA_TOOLKIT}"
+  chmod +x cuda*.run
+  sudo bash cuda*.run --silent --override --toolkit --samples --toolkitpath=/usr/local/cuda-toolkit --samplespath=/usr/local/cuda --no-opengl-libs
+  sudo ln -s /usr/local/cuda-toolkit /usr/local/cuda
+  echo "export PATH=\"$PATH:/usr/local/cuda-toolkit/bin\"" >> set_cuda_on_path.sh
+  sudo cp set_cuda_on_path.sh /etc/profile.d/
+  rm cuda*.run
 fi
 
 # Install CloudFormation helper scripts

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright 2024-2025 The MathWorks, Inc.
+# Copyright 2024-2026 The MathWorks, Inc.
 
 PS4='+ [\d \t] '
 set -uo pipefail
@@ -37,6 +37,11 @@ overwrite_stunnel_config() {
     local port=$2
 
     printf 'cert = /etc/stunnel/stunnel.pem\n' > /etc/stunnel/stunnel.conf || return 1
+
+    # pid= required for stunnel 5.72+ (Ubuntu 24.04): without it, restarting stunnel
+    # fails with "Address already in use" error
+    printf 'pid = /var/run/stunnel4/stunnel.pid\n' >> /etc/stunnel/stunnel.conf || return 1
+
     printf '[nfs]\n' >> /etc/stunnel/stunnel.conf || return 1
     printf 'accept = 0.0.0.0:%b\n' "$port" >> /etc/stunnel/stunnel.conf || return 1
     printf 'connect = 127.0.0.1:%b\n' "$nfsport" >> /etc/stunnel/stunnel.conf || return 1
@@ -51,6 +56,11 @@ overwrite_stunnel_client_config() {
 
     echo "Overriding stunnel configuration"
     printf 'client = yes\n' > /etc/stunnel/stunnel.conf || return 1
+
+    # pid= required for stunnel 5.72+ (Ubuntu 24.04): without it, restarting stunnel
+    # fails with "Address already in use" error
+    printf 'pid = /var/run/stunnel4/stunnel.pid\n' >> /etc/stunnel/stunnel.conf || return 1
+    
     printf 'CAfile = /etc/stunnel/%b\n' "${STUNNEL_CERT_NAME}" >> /etc/stunnel/stunnel.conf || return 1
     printf '[nfs-client]\n' >> /etc/stunnel/stunnel.conf || return 1
     printf 'accept = 127.0.0.1:%b\n' "$port" >> /etc/stunnel/stunnel.conf || return 1

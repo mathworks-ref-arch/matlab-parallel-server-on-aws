@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright 2022-2025 The MathWorks, Inc.
+# Copyright 2022-2026 The MathWorks, Inc.
 
 # Exit on any failure, treat unset substitution variables as errors
 set -euo pipefail
@@ -13,10 +13,10 @@ PYTHON_MINOR=$(echo $PYTHON_VERSION | cut -d. -f2)
 # https://pip.pypa.io/en/stable/installation/#get-pip-py
 if [[ $PYTHON_MINOR -le 8 ]]; then
     echo "Using Python 3.${PYTHON_MINOR} specific pip installer"
-    curl "https://bootstrap.pypa.io/pip/3.${PYTHON_MINOR}/get-pip.py" | sudo python3
+    curl "https://bootstrap.pypa.io/pip/3.${PYTHON_MINOR}/get-pip.py" | sudo PIP_BREAK_SYSTEM_PACKAGES=1 python3
 else
     echo "Using default pip installer"
-    curl https://bootstrap.pypa.io/get-pip.py | sudo python3
+    curl https://bootstrap.pypa.io/get-pip.py | sudo PIP_BREAK_SYSTEM_PACKAGES=1 python3
 fi
 
 # Create folder
@@ -25,7 +25,7 @@ sudo mkdir -p /opt/mathworks/
 # Install mwplatforminterfaces package
 echo "Installing mwplatforminterfaces package"
 sudo cp -R /tmp/runtime/mwplatforminterfaces/ /opt/mathworks/
-sudo python3 -m pip install -e /opt/mathworks/mwplatforminterfaces/
+sudo PIP_BREAK_SYSTEM_PACKAGES=1 python3 -m pip install -e /opt/mathworks/mwplatforminterfaces/
 
 # Install cluster_management package
 echo "Installing cluster_management package"

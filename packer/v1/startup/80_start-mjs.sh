@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright 2022-2025 The MathWorks, Inc.
+# Copyright 2022-2026 The MathWorks, Inc.
 
 PS4='+ [\d \t] '
 set -x pipefail
@@ -12,30 +12,33 @@ setfacl -m u:${CLOUD_USER}:rwx /var/run
 echo "===Setting up Networking==="
 
 # Ensure that all communication with the headnode occurs on the local network.
-if [[ ${NODE_TYPE} == 'HEADNODE' ]]; then
-    echo ${LOCAL_IPV4} ${PUBLIC_HOSTNAME} >> /etc/hosts
+# Configure appropriate hostnames to start mjs on workers/headnode.
+# EXTERNAL/INTERNAL_HOSTNAME variables are defined in the startup/setup-mjs-hostname.sh file
+if [[ "${NODE_TYPE}" == 'HEADNODE' ]]; then
+    echo ${LOCAL_IPV4} ${EXTERNAL_HOSTNAME} >> /etc/hosts
+    # Headnode uses its specific external hostname for MJS and external comms
+    MJS_HOSTNAME="${EXTERNAL_HOSTNAME}"
 else
-    echo ${HEADNODE_LOCAL_IP} ${HEADNODE_HOSTNAME} >> /etc/hosts
+    echo ${HEADNODE_LOCAL_IP} ${HEADNODE_EXTERNAL_HOSTNAME} >> /etc/hosts
+    # For workers, default MJS_HOSTNAME to the internal hostname
+    MJS_HOSTNAME="${INTERNAL_HOSTNAME}"
 fi
 
 # Ensure that the MATLAB client can connect directly to the workers. 
 # This is a necessary condition to create parpools.
-export MDCE_OVERRIDE_EXTERNAL_HOSTNAME=${PUBLIC_HOSTNAME}
-export MDCE_OVERRIDE_INTERNAL_HOSTNAME=${LOCAL_HOSTNAME}
+export MDCE_OVERRIDE_EXTERNAL_HOSTNAME="${EXTERNAL_HOSTNAME}"
+export MDCE_OVERRIDE_INTERNAL_HOSTNAME="${INTERNAL_HOSTNAME}"
+
+# For MATLAB R2024b and earlier releases, set the MPI interface hostname
+if [[ "${MATLAB_RELEASE}" < 'R2025a' ]]; then
+    export MPICH_INTERFACE_HOSTNAME="${INTERNAL_HOSTNAME}"
+fi
 
 echo "===Starting MATLAB Job Scheduler==="
 
 mkdir -p ${CHECKPOINT_ROOT}
 chown -R ${CLOUD_USER}:${CLOUD_USER} ${CHECKPOINT_ROOT}
 chmod 755 ${CHECKPOINT_ROOT}
-
-if [[ ${NODE_TYPE} == 'HEADNODE' ]]; then
-    # Hostname of the job manager.
-    MJS_HOSTNAME=${PUBLIC_HOSTNAME}
-else
-    # Hostname of the worker node
-    MJS_HOSTNAME=${LOCAL_HOSTNAME}
-fi
 
 MJS_OPTS=(
     -hostname "${MJS_HOSTNAME}"
@@ -63,7 +66,7 @@ if [[ ${NODE_TYPE} == 'HEADNODE' ]]; then
     if [[ -f "${MJS_ADMIN_PASSWORD_FILE}" ]]; then
         # Provide the password for the administrator account if one has been generated (Security Level 2 and 3)
         PARALLEL_SERVER_JOBMANAGER_ADMIN_PASSWORD=$(cat "${MJS_ADMIN_PASSWORD_FILE}")
-        if [[ "{$MATLAB_RELEASE}" > 'R2023b' ]]; then
+        if [[ "${MATLAB_RELEASE}" > 'R2023b' ]]; then
             export PARALLEL_SERVER_JOBMANAGER_ADMIN_PASSWORD
         else
             MDCEQE_JOBMANAGER_ADMIN_PASSWORD="${PARALLEL_SERVER_JOBMANAGER_ADMIN_PASSWORD}"
@@ -76,7 +79,7 @@ if [[ ${NODE_TYPE} == 'HEADNODE' ]]; then
 else
     echo "===Starting workers==="
     # Start worker processes as CLOUD_USER
-    sudo -E -u ${CLOUD_USER} ./startworker -jobmanagerhost ${HEADNODE_HOSTNAME} -jobmanager "${JOB_MANAGER_NAME}" -num ${WORKERS_PER_NODE}
+    sudo -E -u ${CLOUD_USER} ./startworker -jobmanagerhost ${HEADNODE_EXTERNAL_HOSTNAME} -jobmanager "${JOB_MANAGER_NAME}" -num ${WORKERS_PER_NODE}
 fi
 
 echo "===Done==="

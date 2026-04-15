@@ -12,7 +12,7 @@ For more information about templates, see [Packer Templates](https://www.packer.
 
 ## **Requirements**
 Before starting, you will need:
-* A valid Packer installation later than 1.7.0. For more information, see [Install Packer](https://www.packer.io/downloads).
+* A valid Packer installation of version 1.15.0 or later. For more information, see [Install Packer](https://www.packer.io/downloads).
 * AWS credentials with sufficient permission. For more information, see [Packer Authentication](https://www.packer.io/plugins/builders/amazon#authentication).
 
 ## **Costs**
@@ -49,10 +49,10 @@ This section describes the complete Packer build process and the different optio
 The [Packer template](https://github.mathworks.com/development/parallel-server-aws-refarch/tree/dev/packer/v1/build-parallel-server-ami.pkr.hcl) supports these build-time variables.
 | Argument Name | Default Value | Description |
 |---|---|---|
-| [PRODUCTS](#customize-products-to-install)| MATLAB, MATLAB Parallel Server, MATLAB Production Server™, and all available toolboxes | Products to install, specified as a list of product names separated by spaces. For example, `MATLAB Simulink MATLAB_Parallel_Server MATLAB_Production_Server`.<br>MATLAB parallel server must be installed with MATLAB in order to deploy a parallel server cluster to the cloud. If no products are specified, the Packer build will install MATLAB with all available toolboxes. For more information, see [MATLAB Package Manager](https://github.com/mathworks-ref-arch/matlab-dockerfile/blob/main/MPM.md).|
+| [PRODUCTS](#customize-products-to-install)| MATLAB, MATLAB Parallel Server, and all available toolboxes | Products to install, specified as a list of product names separated by spaces. For example, `MATLAB Simulink MATLAB_Parallel_Server`.<br>MATLAB parallel server must be installed with MATLAB in order to deploy a parallel server cluster to the cloud. If no products are specified, the Packer build will install MATLAB with all available toolboxes. For more information, see [MATLAB Package Manager](https://github.com/mathworks-ref-arch/matlab-dockerfile/blob/main/MPM.md).|
 | [POLYSPACE_PRODUCTS](#customize-polyspace-products-to-install)| Polyspace® Bug Finder™ Server™ and Polyspace Code Prover™ Server™ | Polyspace products to install, specified as a list of product names separated by spaces. For example, `Polyspace_Bug_Finder_Server Polyspace_Code_Prover_Server`.<br/>If no products are specified, the Packer build will install Polyspace with Polyspace Bug Finder Server and Polyspace Code Prover Server. For more information, see [MATLAB Package Manager](https://github.com/mathworks-ref-arch/matlab-dockerfile/blob/main/MPM.md).|
 | SPKGS | List of Deep Learning Support Packages, specified in [release-config](https://github.mathworks.com/development/parallel-server-aws-refarch/tree/dev/packer/v1/release-config) | A list of support packages to install, specified as a list of support package names separated by spaces. For example, `Deep_Learning_Toolbox_Model_for_GoogLeNet_Network Deep_Learning_Toolbox_Model_for_ResNet-101_Network` |
-| BASE_AMI | Default AMI ID refers to ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server. | The base AMI upon which the image is built, defaults to an official Canonical® Ubuntu® image. |
+| BASE_AMI_NAME | Default AMI ID refers to ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server. | The base AMI upon which the image is built, defaults to an official Canonical® Ubuntu® image. |
 | VPC_ID | *unset* | VPC to assign to the Packer build instance. If no VPC is specified, the default VPC will be used.|
 | SUBNET_ID | *unset* | Subnet to assign to the Packer build instance. If no subnet is specified, the subnet with the most free IPv4 addresses will be used.|
 | INSTANCE_TAGS |{Name="Packer Builder", Build="MATLAB_Parallel_Server"} | Tags to add to the Packer build instance.|
@@ -65,11 +65,11 @@ For a full list of the variables used in the build, see the description fields i
 
 ### **Customize Packer Build**
 #### **Customize Products to Install**
-Use the Packer build-time variable `PRODUCTS` to specify the list of products you want to install on the machine image. If unspecified, Packer will install MATLAB, MATLAB Parallel Server, MATLAB Production Server, and all the available toolboxes. Use the Packer build-time variable `POLYSPACE_PRODUCTS` to specify the list of Polyspace products you want to install on the machine image. If unspecified, Packer will install Polyspace Bug Finder Server and Polyspace Code Prover Server.
+Use the Packer build-time variable `PRODUCTS` to specify the list of products you want to install on the machine image. If unspecified, Packer will install MATLAB, MATLAB Parallel Server and all the available toolboxes. Use the Packer build-time variable `POLYSPACE_PRODUCTS` to specify the list of Polyspace products you want to install on the machine image. If unspecified, Packer will install Polyspace Bug Finder Server and Polyspace Code Prover Server.
 
 For example, install the latest version of MATLAB and Deep Learning Toolbox.
 ```bash
-packer build -var="PRODUCTS=MATLAB MATLAB_Parallel_Server MATLAB_Production_Server Deep_Learning_Toolbox" build-parallel-server-ami.pkr.hcl
+packer build -var="PRODUCTS=MATLAB MATLAB_Parallel_Server Deep_Learning_Toolbox" build-parallel-server-ami.pkr.hcl
 ```
 
 #### **Customize MATLAB Parallel Server Release to Install**
@@ -79,9 +79,9 @@ For example, install R2023a for MATLAB Parallel Server and all necessary and ava
 ```bash
 packer build -var-file="release-config/R2023a.pkrvars.hcl" build-matlab-parallel-server-ami.pkr.hcl
 ```
-Command line arguments can also be combined. For example, install R2020a for MATLAB, MATLAB Parallel Server, MATLAB Production Server, and the Parallel Computing Toolbox only.
+Command line arguments can also be combined. For example, install R2020a for MATLAB, MATLAB Parallel Server and the Parallel Computing Toolbox only.
 ```bash
-packer build -var-file="release-config/R2023a.pkrvars.hcl" -var="PRODUCTS=MATLAB MATLAB_Parallel_Server MATLAB_Production_Server Parallel_Computing_Toolbox" build-matlab-parallel-server-ami.pkr.hcl
+packer build -var-file="release-config/R2023a.pkrvars.hcl" -var="PRODUCTS=MATLAB MATLAB_Parallel_Server Parallel_Computing_Toolbox" build-matlab-parallel-server-ami.pkr.hcl
 ```
 Launch the customized image using the corresponding CloudFormation Template.
 For instructions on how to use CloudFormation Templates, see the Deployment Steps
@@ -92,7 +92,7 @@ You can set multiple variables in a [Variable Definition File](https://developer
 For example, to generate a machine image with the most recent MATLAB installed with necessary and additional toolboxes in a custom VPC, create a variable definition file named `custom-variables.pkrvars.hcl` containing these variable definitions.
 ```
 VPC_ID    = <any_VPC_id>
-PRODUCTS  = "MATLAB MATLAB_Parallel_Server MATLAB_Production_Server Deep_Learning_Toolbox Parallel_Computing_Toolbox"
+PRODUCTS  = "MATLAB MATLAB_Parallel_Server Deep_Learning_Toolbox Parallel_Computing_Toolbox"
 POLYSPACE_PRODUCTS = "Polyspace_Bug_Finder_Server Polyspace_Code_Prover_Server"
 ```
 
@@ -179,6 +179,6 @@ If you require assistance or have a request for additional features or capabilit
 
 ----
 
-Copyright 2025 The MathWorks, Inc.
+Copyright 2025-2026 The MathWorks, Inc.
 
 ----

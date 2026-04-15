@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright 2022-2025 The MathWorks, Inc.
+# Copyright 2022-2026 The MathWorks, Inc.
 
 PS4='+ [\d \t] '
 set -x
@@ -18,7 +18,7 @@ fi
 # https://www.mathworks.com/help/matlab-parallel-server/set-matlab-job-scheduler-cluster-security.html
 if [[ ${NODE_TYPE} == 'HEADNODE' ]]; then
 
-    MJS_HOSTNAME=${PUBLIC_HOSTNAME}
+    MJS_HOSTNAME=${EXTERNAL_HOSTNAME}
 
     echo "===Creating secret and profile==="
     if [[ "${MATLAB_RELEASE}" > 'R2022a' ]]; then
