@@ -3,7 +3,7 @@
   "Mappings": {
     "RegionMap": {
       "us-east-1": {
-        "AMI": "ami-051ff303886cf6aa1"
+        "AMI": "ami-046de012fcf0e68a1"
       },
       "us-east-2": {
         "AMI": "Enter the ID of a custom AMI in this region."
@@ -12,7 +12,7 @@
         "AMI": "Enter the ID of a custom AMI in this region."
       },
       "us-west-2": {
-        "AMI": "ami-093f6d62778f3b331"
+        "AMI": "ami-015a6c8c53f98699c"
       },
       "ca-central-1": {
         "AMI": "Enter the ID of a custom AMI in this region."
@@ -21,7 +21,7 @@
         "AMI": "Enter the ID of a custom AMI in this region."
       },
       "eu-west-1": {
-        "AMI": "ami-088d06520faae7eda"
+        "AMI": "ami-02b18fd35aeabc0ed"
       },
       "eu-west-2": {
         "AMI": "Enter the ID of a custom AMI in this region."
@@ -45,7 +45,7 @@
         "AMI": "Enter the ID of a custom AMI in this region."
       },
       "ap-northeast-1": {
-        "AMI": "ami-0df5d2ccfb51b9a7b"
+        "AMI": "ami-0d5292cfeaa0789a8"
       },
       "ap-northeast-2": {
         "AMI": "Enter the ID of a custom AMI in this region."
