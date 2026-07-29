@@ -3,7 +3,7 @@
   "Mappings": {
     "RegionMap": {
       "us-east-1": {
-        "AMI": "ami-0ff47f51ab659d7cc"
+        "AMI": "ami-08449cfde72559c81"
       },
       "us-east-2": {
         "AMI": "Enter the ID of a custom AMI in this region."
@@ -12,7 +12,7 @@
         "AMI": "Enter the ID of a custom AMI in this region."
       },
       "us-west-2": {
-        "AMI": "ami-0bf3305cf5379cc47"
+        "AMI": "ami-0fea624fe2691c6bd"
       },
       "ca-central-1": {
         "AMI": "Enter the ID of a custom AMI in this region."
@@ -21,7 +21,7 @@
         "AMI": "Enter the ID of a custom AMI in this region."
       },
       "eu-west-1": {
-        "AMI": "ami-0ed460bbf6411e981"
+        "AMI": "ami-067648ae092877931"
       },
       "eu-west-2": {
         "AMI": "Enter the ID of a custom AMI in this region."
@@ -45,7 +45,7 @@
         "AMI": "Enter the ID of a custom AMI in this region."
       },
       "ap-northeast-1": {
-        "AMI": "ami-088b9c75c6307d867"
+        "AMI": "ami-0e4d4bc38f18c6935"
       },
       "ap-northeast-2": {
         "AMI": "Enter the ID of a custom AMI in this region."
@@ -490,33 +490,46 @@
         "IamInstanceProfile": {
           "Ref": "HeadnodeInstanceProfile"
         },
-        "SecurityGroupIds": [
+        "NetworkInterfaces": [
           {
-            "Fn::GetAtt": [
-              "MWSecurityGroup",
-              "Outputs.SecurityGroupId"
-            ]
-          },
-          {
-            "Fn::If": [
-              "AddSG",
+            "AssociatePublicIpAddress": {
+              "Fn::If": [
+                "UsePublicIp",
+                true,
+                false
+              ]
+            },
+            "DeviceIndex": "0",
+            "Description": "Primary Network Interface for the MATLAB Parallel Server headnode",
+            "SubnetId": {
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "Subnets"
+                }
+              ]
+            },
+            "GroupSet": [
               {
-                "Ref": "AdditionalSecurityGroup"
+                "Fn::GetAtt": [
+                  "MWSecurityGroup",
+                  "Outputs.SecurityGroupId"
+                ]
               },
               {
-                "Ref": "AWS::NoValue"
+                "Fn::If": [
+                  "AddSG",
+                  {
+                    "Ref": "AdditionalSecurityGroup"
+                  },
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ]
               }
             ]
           }
         ],
-        "SubnetId": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "Subnets"
-            }
-          ]
-        },
         "KeyName": {
           "Ref": "SSHKeyName"
         },
@@ -597,7 +610,7 @@
                 "Content-Disposition: attachment; filename=\"userdata.txt\"",
                 "#!/bin/bash",
                 "",
-                "# Copyright 2022-2023 The MathWorks, Inc.",
+                "# Copyright 2022-2026 The MathWorks, Inc.",
                 "",
                 "# Redirect all output to a log file",
                 "mkdir -p /var/log/mathworks",
@@ -609,11 +622,15 @@
                 {
                   "Fn::Sub": "export ENABLE_SHARED_FS=${EnableSharedFS}"
                 },
+                {
+                  "Fn::Sub": "export COMMUNICATION_MODE=${ClusterCommunicationMode}"
+                },
                 "STARTUP_FOLDER=/opt/mathworks/startup",
                 "# Load startup variables",
                 "if [[ -r ${STARTUP_FOLDER}/.env ]]; then",
                 "    set -o allexport",
                 "    source ${STARTUP_FOLDER}/.env",
+                "    source ${STARTUP_FOLDER}/setup-mjs-hostname.sh",
                 "    set +o allexport",
                 "fi",
                 "",
@@ -802,21 +819,34 @@
       "Type": "AWS::EC2::LaunchTemplate",
       "Properties": {
         "LaunchTemplateData": {
-          "SecurityGroupIds": [
+          "NetworkInterfaces": [
             {
-              "Fn::GetAtt": [
-                "MWSecurityGroup",
-                "Outputs.SecurityGroupId"
-              ]
-            },
-            {
-              "Fn::If": [
-                "AddSG",
+              "DeviceIndex": 0,
+              "AssociatePublicIpAddress": {
+                "Fn::If": [
+                  "UsePublicIp",
+                  true,
+                  false
+                ]
+              },
+              "Description": "Primary Network Interface for MATLAB Parallel Server worker node",
+              "Groups": [
                 {
-                  "Ref": "AdditionalSecurityGroup"
+                  "Fn::GetAtt": [
+                    "MWSecurityGroup",
+                    "Outputs.SecurityGroupId"
+                  ]
                 },
                 {
-                  "Ref": "AWS::NoValue"
+                  "Fn::If": [
+                    "AddSG",
+                    {
+                      "Ref": "AdditionalSecurityGroup"
+                    },
+                    {
+                      "Ref": "AWS::NoValue"
+                    }
+                  ]
                 }
               ]
             }
@@ -889,7 +919,7 @@
                   "Content-Disposition: attachment; filename=\"userdata.txt\"",
                   "#!/bin/bash",
                   "",
-                  "# Copyright 2022-2023 The MathWorks, Inc.",
+                  "# Copyright 2022-2026 The MathWorks, Inc.",
                   "",
                   "# Redirect all output to a log file",
                   "mkdir -p /var/log/mathworks",
@@ -898,12 +928,62 @@
                   {
                     "Fn::Sub": "export ENABLE_SHARED_FS=${EnableSharedFS}"
                   },
+                  {
+                    "Fn::Sub": "export COMMUNICATION_MODE=${ClusterCommunicationMode}"
+                  },
+                  "# Configure HEADNODE_HOSTNAME as seen by workers: public/private DNS name, or private IP",
+                  {
+                    "Fn::Sub": [
+                      "export HEADNODE_HOSTNAME='${ResolvedHeadnodeAddress}'",
+                      {
+                        "ResolvedHeadnodeAddress": {
+                          "Fn::If": [
+                            "UsePublicIp",
+                            {
+                              "Fn::GetAtt": [
+                                "Headnode",
+                                "PublicDnsName"
+                              ]
+                            },
+                            {
+                              "Fn::If": [
+                                "UsePrivateDNSNames",
+                                {
+                                  "Fn::Select": [
+                                    "0",
+                                    {
+                                      "Fn::Split": [
+                                        ".",
+                                        {
+                                          "Fn::GetAtt": [
+                                            "Headnode",
+                                            "PrivateDnsName"
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Fn::GetAtt": [
+                                    "Headnode",
+                                    "PrivateIp"
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  },
                   "",
                   "STARTUP_FOLDER=/opt/mathworks/startup",
                   "# Load startup variables",
                   "if [[ -r ${STARTUP_FOLDER}/.env ]]; then",
                   "    set -o allexport",
                   "    source ${STARTUP_FOLDER}/.env",
+                  "    source ${STARTUP_FOLDER}/setup-mjs-hostname.sh",
                   "    set +o allexport",
                   "fi",
                   "",
@@ -978,9 +1058,6 @@
                   },
                   {
                     "Fn::Sub": "export HEADNODE_LOCAL_IP=${Headnode.PrivateIp}"
-                  },
-                  {
-                    "Fn::Sub": "export HEADNODE_HOSTNAME='${Headnode.PublicDnsName}'"
                   },
                   {
                     "Fn::Join": [
@@ -1434,10 +1511,20 @@
       "AllowedPattern": ".+"
     },
     "Subnets": {
-      "Description": "List of existing public subnets IDs for the head node and workers.",
+      "Description": "List of existing subnets IDs for the head node and workers.",
       "Type": "List<AWS::EC2::Subnet::Id>",
-      "ConstraintDescription": "Must be the ID of existing public subnets within the chosen VPC.",
+      "ConstraintDescription": "Must be the ID of existing subnets within the chosen VPC.",
       "AllowedPattern": ".+"
+    },
+    "ClusterCommunicationMode": {
+      "Description": "Select the communication mode for the cluster. 'PublicDNS': Clients communicate with the cluster using the internet. 'PrivateIP': Cluster nodes expose their Private IPv4 addresses for client-cluster and intra-cluster communication. 'PrivateDNS': Cluster nodes use private DNS names of the form <hostname>.<dns_search_suffix> for client-cluster and intra-cluster communication. Ensure that these names are resolvable within the cluster VPC and by the clients. For details about using a private network configuration, see [Configure Private Network](#configure-private-network).",
+      "Type": "String",
+      "AllowedValues": [
+        "PublicDNS",
+        "PrivateIP",
+        "PrivateDNS"
+      ],
+      "Default": "PublicDNS"
     },
     "ClientIPAddress": {
       "Description": "Comma-separated list of IP address ranges that will be allowed to connect to the cluster. Each IP CIDR should be formatted as <ip_address>/<mask>. The mask determines the number of IP addresses to include. A mask of 32 is a single IP address. Example of allowed values: 10.0.0.1/32 or 10.0.0.0/16,192.34.56.78/32. This calculator can be used to build a specific range: https://www.ipaddressguide.com/cidr. You may need to contact your IT administrator to determine which address is appropriate.",
@@ -1676,6 +1763,22 @@
     }
   },
   "Conditions": {
+    "UsePublicIp": {
+      "Fn::Equals": [
+        {
+          "Ref": "ClusterCommunicationMode"
+        },
+        "PublicDNS"
+      ]
+    },
+    "UsePrivateDNSNames": {
+      "Fn::Equals": [
+        {
+          "Ref": "ClusterCommunicationMode"
+        },
+        "PrivateDNS"
+      ]
+    },
     "OverrideAmi": {
       "Fn::Not": [
         {
@@ -1761,11 +1864,21 @@
       }
     },
     "HeadnodePublicDNS": {
-      "Description": "Public DNSName of the newly created EC2 instance",
+      "Condition": "UsePublicIp",
+      "Description": "Public DNS name of the headnode EC2 instance.",
       "Value": {
         "Fn::GetAtt": [
           "Headnode",
           "PublicDnsName"
+        ]
+      }
+    },
+    "HeadnodePrivateDNS": {
+      "Description": "Private DNS name of the headnode EC2 instance.",
+      "Value": {
+        "Fn::GetAtt": [
+          "Headnode",
+          "PrivateDnsName"
         ]
       }
     },
@@ -1895,6 +2008,7 @@
           "Parameters": [
             "VPC",
             "Subnets",
+            "ClusterCommunicationMode",
             "ClientIPAddress",
             "AdditionalSecurityGroup"
           ]
@@ -1958,6 +2072,9 @@
         },
         "NumWorkersPerNode": {
           "default": "Number of workers to start on each node"
+        },
+        "ClusterCommunicationMode": {
+          "default": "Communication mode for the cluster"
         },
         "ClusterLogLevel": {
           "default": "Level of logs to be generated by MJS"

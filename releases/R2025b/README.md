@@ -24,7 +24,8 @@ Clicking the **Launch Stack** button above opens the “Quick create stack” pa
 | Parameter label | Description |
 | --------------- | ----------- |
 | **VPC to deploy this stack to** | ID of an existing VPC in which to deploy this stack. |
-| **Subnets for the head node and worker nodes** | List of existing public subnets IDs for the head node and workers. |
+| **Subnets for the head node and worker nodes** | List of existing subnets IDs for the head node and workers. |
+| **Communication mode for the cluster** | Select the communication mode for the cluster. 'PublicDNS': Clients communicate with the cluster using the internet. 'PrivateIP': Cluster nodes expose their Private IPv4 addresses for client-cluster and intra-cluster communication. 'PrivateDNS': Cluster nodes use private DNS names of the form \<hostname>.\<dns_search_suffix> for client-cluster and intra-cluster communication. Ensure that these names are resolvable within the cluster VPC and by the clients. For details about using a private network configuration, see [Configure Private Network](#configure-private-network). |
 | **CIDR IP address range of client** | Comma-separated list of IP address ranges that will be allowed to connect to the cluster. Each IP CIDR should be formatted as \<ip_address>/\<mask>. The mask determines the number of IP addresses to include. A mask of 32 is a single IP address. Example of allowed values: 10.0.0.1/32 or 10.0.0.0/16,192.34.56.78/32. This calculator can be used to build a specific range: https://www.ipaddressguide.com/cidr. You may need to contact your IT administrator to determine which address is appropriate. |
 | **Name of SSH key** | Name of an existing EC2 KeyPair to allow SSH access to all the instances. See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html for details on creating these. |
 | **Cluster name** | Name to use for this cluster. This name is shown in MATLAB as the cluster profile name. |
@@ -99,6 +100,62 @@ You can remove the CloudFormation stack and all associated resources when you ar
 
 # Additional Information
 
+## Configure Private Network
+
+To deploy a MATLAB Parallel Server cluster without Public IPv4 addresses for the headnode and the worker nodes, set the `ClusterCommunicationMode` parameter to either `PrivateIP` or `PrivateDNS`. Ensure to meet these requirements before deploying the cluster in a private network configuration.
+
+### Enable Access for Client Machines
+
+Specify the private IPv4 addresses of the clients that can access or submit jobs to the cluster using the `ClientIPAddress` parameter. This field accepts a comma-separated list of IPv4 addresses, for example, `10.0.1.0/24,10.0.2.50`. Note that the client machines must be in the same or peered network as the cluster.
+
+### Enable Outbound Internet Access
+
+Ensure that the headnode and worker nodes have outbound internet access for:
+- Online licensing: Access to `*.mathworks.com`, if you use online licensing for MATLAB Parallel Server.
+- [Autoscaling](#use-autoscaling) and [auto-termination](#automatically-terminate-the-matlab-parallel-server-cluster): Access to Amazon EC2 and Autoscaling services for cluster scaling and termination operations.
+- S3 bucket access: Access to the cluster S3 bucket for transferring cluster profile and other files.
+- Stack deployment: Access to the CloudFormation service to send stack events. Without this access, the headnode remains in the `CREATE_IN_PROGRESS` state during stack deployment.
+- CloudWatch Logs: Access to CloudWatch Logs to deliver logs for monitoring and troubleshooting.
+- SSM management: Access to AWS Systems Manager for instance management. This access is needed if you set the `SnapshotOnStackDeletion` parameter to `Yes`.
+
+If you use a NAT Gateway in the VPC, these requirements are automatically satisfied. Otherwise, you must configure VPC endpoints for required services. To easily create a VPC with these settings, use the [VPC CloudFormation Template](https://github.com/mathworks-ref-arch/iac-building-blocks/tree/main/aws/vpc-template/v1/README.md).
+
+| Endpoint Service | Type | Purpose |
+|-----------------|------|---------|
+| `com.amazonaws.region.ec2` | Interface | EC2 instance management |
+| `com.amazonaws.region.autoscaling` | Interface | Auto Scaling group operations |
+| `com.amazonaws.region.cloudformation` | Interface | CloudFormation stack operations |
+| `com.amazonaws.region.logs` | Interface | CloudWatch logging |
+| `com.amazonaws.region.s3` | Gateway | S3 bucket access for cluster configuration |
+
+If you set `SnapshotOnStackDeletion` to `Yes`, you must configure these additional VPC endpoints.
+
+| Endpoint Service | Type | Purpose |
+|-----------------|------|---------|
+| `com.amazonaws.region.ssm` | Interface | Systems Manager operations |
+| `com.amazonaws.region.ssmmessages` | Interface | Systems Manager messaging |
+| `com.amazonaws.region.ec2messages` | Interface | EC2 Systems Manager messaging |
+
+For details on creating VPC endpoints, see the AWS documentation on [Creating a VPC Endpoint](https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html#create-interface-endpoint-aws).
+
+> Note: You must enable private DNS names for interface endpoints to ensure that requests that use the public AWS service endpoints resolve to your VPC endpoint. For details, see the AWS documentation on [Enable private DNS names](https://docs.aws.amazon.com/vpc/latest/privatelink/interface-endpoints.html#enable-private-dns-names).
+
+
+### Set Cluster Communication Mode
+
+The `ClusterCommunicationMode` parameter specifies how the cluster nodes (headnode and workers) identify themselves to the client and to each other.
+
+- `PublicDNS` (default): All cluster nodes are assigned public IPv4 addresses. MATLAB client machines communicate with the cluster using the public DNS names of the headnode and worker nodes. Use this setting for clusters with public internet access.
+
+- `PrivateIP`: The cluster uses the primary private IPv4 addresses of the headnode and worker nodes for client-to-cluster and intra-cluster communication. Use this setting when DNS name resolution is not required for the cluster nodes.
+
+- `PrivateDNS`: The cluster nodes expose private DNS names of the form `hostname.dns_search_suffix`, where `hostname` is the [local name](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/understanding-ec2-instance-hostnames-domains.html) of the EC2 instance and `dns_search_suffix` is the domain name specified in your VPC's DHCP option set. For details, see the AWS documentation on [DHCP option sets in Amazon VPC](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_DHCP_Options.html).
+    * Amazon Provided DNS: If your VPC uses the default Amazon DNS, no extra setup is required for clients within the same VPC. If the client is in a peered VPC, you must enable DNS resolution for the peering connection. For details, see the AWS documentation on [Enable DNS resolution for a VPC peering connection](https://docs.aws.amazon.com/vpc/latest/peering/vpc-peering-dns.html).
+    * Custom DNS Server: If you use a custom DNS server or connect from an on-premises network, ensure that the "A records" for the private DNS names of the headnode and worker nodes are automatically registered with your DNS service at startup. MATLAB client machines must be able resolve these DNS names, otherwise, job submissions will fail.
+
+> Note: For MATLAB R2022b and older releases, use `PrivateDNS` (or `PublicDNS`) as these releases do not support `PrivateIP` as the communication mode.
+
+
 ## Port Requirements
 
 Before you can use your MATLAB Parallel Server cluster, you must configure certain required ports on the cluster and client firewall. These ports allow your client machine to connect to the cluster headnode and facilitate communication between the cluster nodes. 
@@ -141,9 +198,9 @@ Use the `Automatically Terminate Cluster` parameter while deploying the cluster 
 * `When cluster is idle`: Terminates the cluster when it is idle for about 10 minutes (30 minutes at startup).
 * `After x hours`: Terminates the cluster after 'x' hours (where `x` is between 1 and 24).
 
-When the cluster is auto-terminated, the head-node EC2 instance is stopped and all worker EC2 instances in the Auto-Scaling group are deleted. To use the cluster again, restart the head-node.
+When the cluster is auto-terminated, the headnode EC2 instance is stopped and all worker EC2 instances in the Auto-Scaling group are deleted. To use the cluster again, restart the headnode.
 
-To modify the termination policy after deploying the cluster, edit the value of the tag `mw-autoshutdown` that is attached to the head-node. Set the value of the tag to either `never`, `on_idle`, or `After x hours`, where x must be an integer between 1 and 24.
+To modify the termination policy after deploying the cluster, edit the value of the tag `mw-autoshutdown` that is attached to the headnode. Set the value of the tag to either `never`, `on_idle`, or `After x hours`, where x must be an integer between 1 and 24.
 
 ## Cluster File System and Storage
 
@@ -190,7 +247,7 @@ MathWorks provides prebuilt Amazon Machine Images (AMIs) only in the regions lis
 
 1. **Copy AMI into your account**: Use this AWS quick-create link to copy the latest MATLAB Parallel Server AMI on Linux into your AWS account. Clicking the link opens a CloudFormation template with prepopulated fields. Set the AWS region in the AWS console to your desired region and deploy the template to copy the AMI. Copying takes 5 to 15 minutes. You are responsible for the costs associated with the storage of this AMI and its snapshots in your AWS account. To save costs, delete this AMI and the snapshots if you no longer need it.
 
-    [![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Copy an AMI into your AWS account")](https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?templateURL=https://mathworks-reference-architectures-templates.s3.amazonaws.com/copy-ami-lambda/v1/0/0/copy-ami-lambda.yml&stackName=Copy-of-MATLAB-Parallel-Server--AMI&param_SourceAmiId=ami-0ff47f51ab659d7cc&param_SourceRegion=us-east-1&param_AmiName=Copy%20of%20MATLAB%20Parallel%20Server%20Linux%20&param_ReferenceTag=https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws&param_MWTemplateUrl=https://mdcs-on-aws.s3.amazonaws.com/R2025b/mjs-cluster-template.json)
+    [![alt text](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png "Copy an AMI into your AWS account")](https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?templateURL=https://mathworks-reference-architectures-templates.s3.amazonaws.com/copy-ami-lambda/v1/0/0/copy-ami-lambda.yml&stackName=Copy-of-MATLAB-Parallel-Server--AMI&param_SourceAmiId=ami-08449cfde72559c81&param_SourceRegion=us-east-1&param_AmiName=Copy%20of%20MATLAB%20Parallel%20Server%20Linux%20&param_ReferenceTag=https://github.com/mathworks-ref-arch/matlab-parallel-server-on-aws&param_MWTemplateUrl=https://mdcs-on-aws.s3.amazonaws.com/R2025b/mjs-cluster-template.json)
 
 2. **Deploy a cluster using your copied AMI**: After your copy is complete and your AMI is ready, use the `LaunchClusterWithCopiedAmi` link in the outputs tab to deploy a cluster in your desired region. You can also share this link or the Custom AMI ID with others in your AWS account to allow them to deploy clusters using the same AMI.
 
@@ -206,6 +263,8 @@ If you are unable to validate the cluster after creating the stack, check the lo
 When using SSH to connect to the instance, login as `ubuntu`.
 
 The logs are output to /var/log on the instance nodes; the files of interest are cloud-init.log, cloud-init-output.log and all the logs under /var/log/mathworks/.
+
+If your cluster is unable to create new workers, you encounter scaling errors. To troubleshoot these issues, see [Resolve Scaling Issues in the Cloud](https://www.mathworks.com/help/matlab-parallel-server/resolve-scaling-issues-in-the-cloud.html).
 
 ----
 
