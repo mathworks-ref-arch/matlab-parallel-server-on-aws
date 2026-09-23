@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright 2023-2025 The MathWorks, Inc.
+# Copyright 2023-2026 The MathWorks, Inc.
 
 # Exit on any failure, treat unset substitution variables as errors
 set -euo pipefail
@@ -13,6 +13,8 @@ mkdir -p /home/${LOCAL_USER}/Documents/MATLAB/
 # Configure MATLAB_ROOT directory
 sudo mkdir -p "${MATLAB_ROOT}"
 sudo chmod -R 755 "${MATLAB_ROOT}"
+
+cd ${TMP_DIR}
 
 # Install and setup mpm.
 # https://github.com/mathworks-ref-arch/matlab-dockerfile/blob/main/MPM.md
@@ -36,11 +38,11 @@ release_arguments=""
 source_arguments=""
 if [[ -n "${MATLAB_SOURCE_URL}" ]]; then
     source /var/tmp/config/matlab/mount-data-drive-utils.sh
-
-    source_dir="/mnt/matlab_source"
+    mount_dir="/mnt"
+    source_dir="${mount_dir}/matlab_source"
     mount_device_name="/dev/sdf"
     # Create and mount additional volume to the instance
-    mount_data_drive "${source_dir}" "${mount_device_name}"
+    mount_data_drive "${mount_dir}" "${mount_device_name}"
     # Download the source artifacts to the mounted volume
     retrieve_artifacts "${MATLAB_SOURCE_URL}" "${source_dir}"
     # Source directory must contain an archives folder that mpm uses for installing products
@@ -50,19 +52,29 @@ else
     release_arguments="--release=${RELEASE}"
 fi
 
+# Set the support package installation location during install for R2025a and later.
+# mpm supports --support-package-destination only for R2025a onward, and only for new
+# installations that do not already have a support package location set. For R2024b and
+# earlier, setup-spkg-root.sh configures the location separately.
+spkg_destination_arguments=""
+if [[ $RELEASE > 'R2024b' ]]; then
+    spkg_destination_arguments="--support-package-destination=${CLOUD_USER_HOME}/Documents/MATLAB/SupportPackages"
+fi
+
 # Run mpm to install MATLAB and the toolboxes listed in the PRODUCTS variable
 # into the target location. The mpm executable is deleted afterwards
 # The PRODUCTS variable should be a space separated list of products, with no surrounding quotes
 # Use quotes around the destination argument if it contains spaces
-sudo ./mpm install \
+sudo TMPDIR="${TMP_DIR}" ./mpm install \
   ${doc_flag} \
   ${release_arguments} \
   ${source_arguments} \
+  ${spkg_destination_arguments} \
   --destination="${MATLAB_ROOT}" \
   --products ${PRODUCTS} \
-  || (echo "MPM Installation Failure. See below for more information:" && cat /tmp/mathworks_root.log && false)
+  || (echo "MPM Installation Failure. See below for more information:" && cat ${TMP_DIR}/mathworks_root.log && false)
 
-sudo rm -f mpm /tmp/mathworks_root.log
+sudo rm -f mpm ${TMP_DIR}/mathworks_root.log
 
 # Add symlink to MATLAB
 sudo ln -s "${MATLAB_ROOT}/bin/matlab" /usr/local/bin

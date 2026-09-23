@@ -24,19 +24,19 @@ sudo mkdir -p /opt/mathworks/
 
 # Install mwplatforminterfaces package
 echo "Installing mwplatforminterfaces package"
-sudo cp -R /tmp/runtime/mwplatforminterfaces/ /opt/mathworks/
+sudo cp -R ${TMP_DIR}/runtime/mwplatforminterfaces/ /opt/mathworks/
 sudo PIP_BREAK_SYSTEM_PACKAGES=1 python3 -m pip install -e /opt/mathworks/mwplatforminterfaces/
 
 # Install cluster_management package
 echo "Installing cluster_management package"
-sudo cp -R /tmp/runtime/cluster_management/ /opt/mathworks/
+sudo cp -R ${TMP_DIR}/runtime/cluster_management/ /opt/mathworks/
 sudo chmod +x /opt/mathworks/cluster_management/cluster_management.py
 sudo chmod +x /opt/mathworks/cluster_management/terminationpolicies/mjs_status_scripts/busy
 sudo chmod +x /opt/mathworks/cluster_management/terminationpolicies/mjs_status_scripts/idle
 
 # Install spotinstances package
 echo "Installing spotinstances package"
-sudo cp -R /tmp/runtime/spotinstances/ /opt/mathworks/
+sudo cp -R ${TMP_DIR}/runtime/spotinstances/ /opt/mathworks/
 sudo chmod +x /opt/mathworks/spotinstances/handle_instance_interruption.py
 
 # Configure the service and timer.
@@ -46,7 +46,7 @@ sudo cp /var/tmp/config/spotinstances/spotinstances.{service,timer} /etc/systemd
 
 # Install NFS scripts
 echo "Installing NFS scripts"
-sudo cp -R /tmp/runtime/nfs-share /opt/mathworks/nfs-share
+sudo cp -R ${TMP_DIR}/runtime/nfs-share /opt/mathworks/nfs-share
 sudo chmod 755 /opt/mathworks/nfs-share/setup_NFS_with_TLS.sh
 sudo chmod 755 /opt/mathworks/nfs-share/warmup_mathworks_service_host.sh
 # Functions script is only ever sourced, so execute bit is not needed

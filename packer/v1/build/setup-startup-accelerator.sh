@@ -6,14 +6,14 @@
 set -euo pipefail
 
 # Fetch MSA file from GitHub
-wget -O /tmp/msa.ini $MSA_URL
+wget -O ${TMP_DIR}/msa.ini $MSA_URL
 
 # Move msa.ini file
 sudo mkdir -p /usr/local/etc/msa
 
 # 755 - owner can read/write/execute, group/others can read/execute
 sudo chmod 755 /usr/local/etc/msa
-sudo mv '/tmp/msa.ini' /usr/local/etc/msa/msa.ini
+sudo mv "${TMP_DIR}/msa.ini" /usr/local/etc/msa/msa.ini
 
 sudo apt-get install -y dos2unix
 # Ensure that the msa.ini file has UNIX line endings

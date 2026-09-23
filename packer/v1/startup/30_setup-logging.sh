@@ -17,20 +17,19 @@ if [[ -n ${CLOUD_LOG_NAME} ]]; then
         INSTANCE_NAME="workernode-${LOCAL_HOSTNAME}"
     fi
 
-    MJS_LOGBASE=/var/log/mjs
     MJS_LOGFILES=$(cat << EOF
 {
-                        "file_path": "${MJS_LOGBASE}/mjs-service.log",
+                        "file_path": "${MJS_LOG_BASE}/mjs-service.log",
                         "log_group_name": "${CLOUD_LOG_NAME}",
                         "log_stream_name": "mjs-service-${INSTANCE_NAME}"
                     },
                     {
-                        "file_path": "${MJS_LOGBASE}/command_listener.log*",
+                        "file_path": "${MJS_LOG_BASE}/command_listener.log*",
                         "log_group_name": "${CLOUD_LOG_NAME}",
                         "log_stream_name": "command-listener-${INSTANCE_NAME}"
                     },
                     {
-                        "file_path": "${MJS_LOGBASE}/mjsdirectory-service.log*",
+                        "file_path": "${MJS_LOG_BASE}/mjsdirectory-service.log*",
                         "log_group_name": "${CLOUD_LOG_NAME}",
                         "log_stream_name": "mjsdirectory-service-${INSTANCE_NAME}"
                     },
@@ -42,12 +41,12 @@ EOF
         MJS_LOGFILES+=$(cat << EOF
 
                     {
-                        "file_path": "${MJS_LOGBASE}/jobmanager_*.log*",
+                        "file_path": "${MJS_LOG_BASE}/jobmanager_*.log*",
                         "log_group_name": "${CLOUD_LOG_NAME}",
                         "log_stream_name": "jobmanager-${INSTANCE_NAME}"
                     },
                     {
-                        "file_path": "${MJS_LOGBASE}/jobmanager-spf-service.log*",
+                        "file_path": "${MJS_LOG_BASE}/jobmanager-spf-service.log*",
                         "log_group_name": "${CLOUD_LOG_NAME}",
                         "log_stream_name": "jobmanager-spf-service-${INSTANCE_NAME}"
                     }
@@ -61,7 +60,7 @@ EOF
             MJS_LOGFILES+=$(cat << EOF
 
                     {
-                        "file_path":"${MJS_LOGBASE}/worker*-log*_$((i+1))*.log*",
+                        "file_path":"${MJS_LOG_BASE}/worker*-log*_$((i+1))*.log*",
                         "log_group_name":"${CLOUD_LOG_NAME}",
                         "log_stream_name":"worker-$((i+1))-${INSTANCE_NAME}"
                     },
@@ -72,7 +71,7 @@ EOF
         MJS_LOGFILES+=$(cat << EOF
 
                     {
-                        "file_path": "${MJS_LOGBASE}/workergroup_*.log*",
+                        "file_path": "${MJS_LOG_BASE}/workergroup_*.log*",
                         "log_group_name": "${CLOUD_LOG_NAME}",
                         "log_stream_name": "workergroup-${INSTANCE_NAME}"
                     }

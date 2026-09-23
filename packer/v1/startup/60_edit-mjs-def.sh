@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright 2022-2025 The MathWorks, Inc.
+# Copyright 2022-2026 The MathWorks, Inc.
 
 PS4='+ [\d \t] '
 set -x
@@ -22,7 +22,10 @@ edit_mjs_def () {
     local parameter_name="$1"
     local parameter_value="$2"
 
-    sed -i "s|^#${parameter_name}=.*|${parameter_name}=\"${parameter_value}\"|" "${MJS_DEF_FILE}"
+    # Match the parameter whether it is still commented out (#PARAM=, pristine mjs_def)
+    # or already set (PARAM="...", set by a previous boot). The optional leading '#'
+    # keeps this idempotent so a value change is re-applied when userdata re-runs on restart.
+    sed -i "s|^#\?${parameter_name}=.*|${parameter_name}=\"${parameter_value}\"|" "${MJS_DEF_FILE}"
     if ! (grep -q "^${parameter_name}=" "${MJS_DEF_FILE}"); then
         echo "Failed to set parameter ${parameter_name}"
         exit 1
@@ -106,3 +109,19 @@ if [[ -n "${SCHEDULING_ALGORITHM}" ]]; then
         echo 'WARNING: Selecting the scheduling algorithm is only available for R2023b and later'
     fi
 fi
+
+# Ensure that all communication with the headnode occurs on the local network.
+# Configure appropriate hostnames to start mjs on workers/headnode.
+if [[ "${NODE_TYPE}" == 'HEADNODE' ]]; then
+    echo ${LOCAL_IPV4} ${EXTERNAL_HOSTNAME} >> /etc/hosts
+    # Headnode uses its specific external hostname for MJS and external comms
+    MJS_HOSTNAME="${EXTERNAL_HOSTNAME}"
+else
+    echo ${HEADNODE_LOCAL_IP} ${HEADNODE_EXTERNAL_HOSTNAME} >> /etc/hosts
+    # For workers, default MJS_HOSTNAME to the internal hostname
+    MJS_HOSTNAME="${INTERNAL_HOSTNAME}"
+fi
+
+edit_mjs_def 'HOSTNAME' "${MJS_HOSTNAME}"
+
+edit_mjs_def 'SHARED_SECRET_FILE' "${SECRET_FILE}"

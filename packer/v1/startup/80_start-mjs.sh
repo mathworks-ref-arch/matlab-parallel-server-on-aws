@@ -7,22 +7,9 @@ set -x pipefail
 
 echo "===Setup directory permissions==="
 # Set Access Control List to allow CLOUD_USER to read/write/execute on required directories
-setfacl -m u:${CLOUD_USER}:rwx /var/run
+setfacl -m u:${CLOUD_USER}:rwx "${MJS_PID_BASE}"
 
 echo "===Setting up Networking==="
-
-# Ensure that all communication with the headnode occurs on the local network.
-# Configure appropriate hostnames to start mjs on workers/headnode.
-# EXTERNAL/INTERNAL_HOSTNAME variables are defined in the startup/setup-mjs-hostname.sh file
-if [[ "${NODE_TYPE}" == 'HEADNODE' ]]; then
-    echo ${LOCAL_IPV4} ${EXTERNAL_HOSTNAME} >> /etc/hosts
-    # Headnode uses its specific external hostname for MJS and external comms
-    MJS_HOSTNAME="${EXTERNAL_HOSTNAME}"
-else
-    echo ${HEADNODE_LOCAL_IP} ${HEADNODE_EXTERNAL_HOSTNAME} >> /etc/hosts
-    # For workers, default MJS_HOSTNAME to the internal hostname
-    MJS_HOSTNAME="${INTERNAL_HOSTNAME}"
-fi
 
 # Ensure that the MATLAB client can connect directly to the workers. 
 # This is a necessary condition to create parpools.
@@ -41,12 +28,15 @@ chown -R ${CLOUD_USER}:${CLOUD_USER} ${CHECKPOINT_ROOT}
 chmod 755 ${CHECKPOINT_ROOT}
 
 MJS_OPTS=(
-    -hostname "${MJS_HOSTNAME}"
-    -loglevel ${CLUSTER_LOG_LEVEL%%[^0-9]*}
-    -enablepeerlookup
-    -sharedsecretfile "${SECRET_FILE}"
     -cleanPreserveJobs
+    -loglevel ${CLUSTER_LOG_LEVEL%%[^0-9]*}
 )
+
+if [[ "${MATLAB_RELEASE}" < 'R2023a' ]]; then
+    MJS_OPTS+=(
+        -enablepeerlookup
+    )
+fi
 
 if [[ "${TERMINATION_POLICY}" == "Never" || "${TERMINATION_POLICY}" == "When cluster is idle" ]]; then
     MJS_OPTS+=(

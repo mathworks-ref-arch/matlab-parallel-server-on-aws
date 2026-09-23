@@ -13,6 +13,8 @@ BUILD_SCRIPTS = ["create-cloud-user.sh",
   "install-dependencies.sh",
   "install-matlab-dependencies-ubuntu.sh",
   "install-matlab.sh",
+  "setup-spkg-root.sh",
+  "install-support-packages.sh",
   "install-polyspace.sh",
   "setup-startup-accelerator.sh",
 "cleanup.sh"]

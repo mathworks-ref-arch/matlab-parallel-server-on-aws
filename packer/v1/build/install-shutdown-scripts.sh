@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
-# Copyright 2024-2025 The MathWorks, Inc.
+# Copyright 2024-2026 The MathWorks, Inc.
 
 # Exit on any failure, treat unset substitution variables as errors
 set -euxo pipefail
 
 # Install shutdown scripts
-sudo cp -R /tmp/shutdown /opt/mathworks/
+sudo cp -R ${TMP_DIR}/shutdown /opt/mathworks/
 sudo chmod +x /opt/mathworks/shutdown/*.sh
 
 sudo cp /var/tmp/config/shutdown/run-at-shutdown.service /etc/systemd/system/

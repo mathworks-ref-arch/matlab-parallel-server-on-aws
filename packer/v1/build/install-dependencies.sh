@@ -10,17 +10,10 @@ export DEBIAN_FRONTEND=noninteractive
 sudo apt-get -qq update
 sudo apt-get -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade
 
-# Install kernel headers, modules, and build tools required for NVIDIA driver compilation
-sudo apt-get install -qq \
-  linux-headers-$(uname -r) \
-  linux-modules-extra-$(uname -r) \
-  build-essential \
-  dkms
-
 # Ensure essential utilities are installed
 sudo apt-get -qq install gcc make unzip wget
 
-cd /tmp
+cd ${TMP_DIR}
 
 # Install AWS CLI
 # https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
@@ -49,27 +42,30 @@ curl -sSL https://bit.ly/install-xq | sudo bash
 DISABLE_NOUVEAU_FILE="disable_nouveau_driver.conf"
 MODPROBE_TREE="/etc/modprobe.d/"
 
-echo blacklist amd76x_edac > /tmp/${DISABLE_NOUVEAU_FILE}
-echo blacklist vga16fb >> /tmp/${DISABLE_NOUVEAU_FILE}
-echo blacklist rivafb >> /tmp/${DISABLE_NOUVEAU_FILE}
-echo blacklist nvidiafb >> /tmp/${DISABLE_NOUVEAU_FILE}
-echo blacklist rivatv >> /tmp/${DISABLE_NOUVEAU_FILE}
-echo blacklist nouveau >> /tmp/${DISABLE_NOUVEAU_FILE}
-echo blacklist lbm-nouveau >> /tmp/${DISABLE_NOUVEAU_FILE}
-echo options nouveau modeset=0  >> /tmp/${DISABLE_NOUVEAU_FILE}
-echo alias nouveau off  >> /tmp/${DISABLE_NOUVEAU_FILE}
-echo alias lbm-nouveau off  >> /tmp/${DISABLE_NOUVEAU_FILE}
-sudo mv /tmp/${DISABLE_NOUVEAU_FILE} ${MODPROBE_TREE}/
+echo blacklist amd76x_edac > ${TMP_DIR}/${DISABLE_NOUVEAU_FILE}
+echo blacklist vga16fb >> ${TMP_DIR}/${DISABLE_NOUVEAU_FILE}
+echo blacklist rivafb >> ${TMP_DIR}/${DISABLE_NOUVEAU_FILE}
+echo blacklist nvidiafb >> ${TMP_DIR}/${DISABLE_NOUVEAU_FILE}
+echo blacklist rivatv >> ${TMP_DIR}/${DISABLE_NOUVEAU_FILE}
+echo blacklist nouveau >> ${TMP_DIR}/${DISABLE_NOUVEAU_FILE}
+echo blacklist lbm-nouveau >> ${TMP_DIR}/${DISABLE_NOUVEAU_FILE}
+echo options nouveau modeset=0  >> ${TMP_DIR}/${DISABLE_NOUVEAU_FILE}
+echo alias nouveau off  >> ${TMP_DIR}/${DISABLE_NOUVEAU_FILE}
+echo alias lbm-nouveau off  >> ${TMP_DIR}/${DISABLE_NOUVEAU_FILE}
+sudo mv ${TMP_DIR}/${DISABLE_NOUVEAU_FILE} ${MODPROBE_TREE}/
 sudo chown root:root  ${MODPROBE_TREE}/${DISABLE_NOUVEAU_FILE}
 sudo chmod 755  ${MODPROBE_TREE}/${DISABLE_NOUVEAU_FILE}
 sudo update-initramfs -u
 
 # Install nvidia-driver
 if [[ -n "${NVIDIA_DRIVER_VERSION}" ]]; then
+  sudo apt-get -y -qq install --no-install-recommends "nvidia-driver-${NVIDIA_DRIVER_VERSION}-server"
+fi
+
+if [[ -n "${NVIDIA_CUDA_KEYRING_URL}" ]]; then
   wget -O cuda-keyring.deb ${NVIDIA_CUDA_KEYRING_URL}
   sudo dpkg -i cuda-keyring.deb
   sudo apt-get update
-  sudo apt-get -y -qq install --no-install-recommends "nvidia-driver-${NVIDIA_DRIVER_VERSION}-server"
 fi
 
 # Install NVIDIA CUDA Toolkit

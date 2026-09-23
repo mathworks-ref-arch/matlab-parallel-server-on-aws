@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright 2025 The MathWorks, Inc.
+# Copyright 2025-2026 The MathWorks, Inc.
 
 # Function to set permissions
 set_permissions() {
@@ -12,25 +12,47 @@ set_permissions() {
   sudo chmod -R "$perms" "$dir"
 }
 
-# Function to find an NVMe disk with no file system
+# Mount an NVMe disk: instance-store scratch (1 arg) or an EBS volume by ID (2 args).
 mount_nvme_disk() {
   local mount_point="$1"
-  # Nitro-based instances expose EBS volumes as NVMe block devices.
-  # Recommended way to identify newly attached volumes is to check for
-  # disks with no file systems mounted as /dev/nvmeXnX.
-  # See: https://docs.aws.amazon.com/ebs/latest/userguide/ebs-using-volumes.html
+  local volume_id="${2:-}"
+
+  if [[ -z "${volume_id}" ]]; then
+      # Ephemeral instance-store disk: first NVMe disk with no file system.
+      for disk in $(lsblk -dpn -o NAME | grep '^/dev/nvme'); do
+          echo "Processing disk: ${disk}"
+          if [[ $(sudo file -bs "${disk}") == 'data' ]]; then
+              echo "Found instance-store disk ${disk} with no file system."
+              sudo mkfs -t ext4 "${disk}"
+              sudo mount "${disk}" "${mount_point}"
+              return 0
+          fi
+          echo "Disk ${disk} already has a file system. Skipping."
+      done
+      # No instance-store disk (e.g. a non-'d'-type builder): stay on the root volume.
+      echo "No ephemeral instance-store disk found; leaving ${mount_point} on the root volume."
+      return 0
+  fi
+
+  # EBS volume: match the NVMe serial to the volume ID.
+  local target_serial="${volume_id//-/}"
   for disk in $(lsblk -dpn -o NAME | grep '^/dev/nvme'); do
       echo "Processing disk: ${disk}"
-      if [[ $(sudo file -bs "${disk}") == 'data' ]]; then
-          echo "Found disk ${disk} with no file system."
-          echo "$disk"
-          sudo mkfs -t ext4 $disk
-          sudo mount $disk $mount_point
-          return
+      # Read the NVMe serial; fall back to sysfs if lsblk does not populate SERIAL.
+      local serial
+      serial=$(lsblk -dn -o SERIAL "${disk}" | tr -d '[:space:]')
+      if [[ -z "${serial}" ]]; then
+          serial=$(cat "/sys/block/$(basename "${disk}")/device/serial" 2>/dev/null | tr -d '[:space:]')
       fi
-      echo "Disk ${disk} already has a file system. Skipping."
+      if [[ "${serial}" == "${target_serial}"* ]]; then
+          echo "Found EBS volume ${volume_id} at ${disk} (serial ${serial})."
+          sudo mkfs -t ext4 "${disk}"
+          sudo mount "${disk}" "${mount_point}"
+          return 0
+      fi
+      echo "Disk ${disk} (serial ${serial}) is not volume ${volume_id}. Skipping."
   done
-  echo "Found no additional disk attached to the instance. Exiting..." 
+  echo "Could not find the attached EBS volume ${volume_id}. Exiting..."
   exit 1
 }
 
@@ -39,6 +61,10 @@ retrieve_artifacts() {
     # zip file to the destination folder, extracts it, and removes the zip file.
     local source_url="$1"
     local destination="$2"
+
+    # Ensure that the destination directory exists and has proper permissions
+    sudo mkdir -p "$destination"
+    set_permissions "$destination" "ubuntu" "ubuntu" "755"
 
     aws s3 cp "${source_url}" "${destination}/source.zip"
     unzip -q -o "${destination}/source.zip" -d "${destination}"
@@ -80,7 +106,7 @@ mount_data_drive() {
     REGION=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/placement/region)
 
     # Create a volume from the snapshot
-    VOLUME_ID=$(aws ec2 create-volume --region $REGION --size 128 --volume-type gp3 --availability-zone $AVAILABILITY_ZONE --query 'VolumeId' --output text)
+    VOLUME_ID=$(aws ec2 create-volume --region $REGION --size 256 --volume-type gp3 --availability-zone $AVAILABILITY_ZONE --query 'VolumeId' --output text)
 
     # Wait for the volume to become available
     aws ec2 wait volume-available --region $REGION --volume-ids $VOLUME_ID
@@ -99,7 +125,7 @@ mount_data_drive() {
 
     sudo mkdir -p "${mount_dir}"
 
-    mount_nvme_disk "${mount_dir}"
+    mount_nvme_disk "${mount_dir}" "${VOLUME_ID}"
 
     set_permissions "${mount_dir}" "ubuntu" "ubuntu" "755"
 }

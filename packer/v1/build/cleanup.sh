@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #
-# Copyright 2024-2025 The MathWorks, Inc.
+# Copyright 2024-2026 The MathWorks, Inc.
 
 # Exit on any failure
 set -euo pipefail
 
 # Clear build configuration files
 sudo rm -rf /var/tmp/config/
-sudo rm -rf /tmp/runtime/
+sudo rm -rf ${TMP_DIR}/runtime/
 
 # Clear SSH host keys
 sudo rm -f /etc/ssh/ssh_host_*_key*
